@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="Brian Hsieh's Portfolio & Resume. 電子工程與軟硬體整合工程師的個人網站與作品集。" />
+        <meta name="author" content="Brian Hsieh" />
+        <title>Brian Hsieh | Portfolio & Resume</title>
+        <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico" />
+        <!-- Font Awesome icons-->
+        <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+        <!-- Google fonts-->
+        <link href="https://fonts.googleapis.com/css?family=Saira+Extra+Condensed:500,700" rel="stylesheet" type="text/css" />
+        <link href="https://fonts.googleapis.com/css?family=Muli:400,400i,800,800i" rel="stylesheet" type="text/css" />
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="css/styles.css" rel="stylesheet" />
+        <!-- Custom Developer Dark/Light Theme -->
+        <link href="css/custom-dark.css" rel="stylesheet" />
+    </head>
+    <body id="page-top">
+        <!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top" id="sideNav">
+            <a class="navbar-brand js-scroll-trigger" href="#page-top">
+                <span class="d-block d-lg-none">謝進權 Brian</span>
+                <span class="d-none d-lg-block"><img class="img-fluid img-profile rounded-circle mx-auto mb-2" src="assets/img/profile.jpeg" alt="Brian Hsieh" /></span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#about">About & Skills</a></li>
+                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#projects">Projects</a></li>
+                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#experience">Experience & Awards</a></li>
+                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#education">Education & Interests</a></li>
+                </ul>
+            </div>
+        </nav>
+        <!-- Page Content-->
+        <div class="container-fluid p-0">
+            <!-- ==========================================================================
+               Section 1: About & Skills
+               ========================================================================== -->
+            <section class="resume-section" id="about">
+                <div class="resume-section-content">
+                    
+                    <!-- Cover image/video header for Resume -->
+                    <div class="resume-cover-header mb-4" style="min-height: 100px; padding: 24px 30px;">
+                        <div class="cover-gradient-overlay"></div>
+                        <div class="cover-text-content">
+                            <span class="badge bg-secondary mb-0">臺北科技大學電子工程系</span>
+                        </div>
+                    </div>
+
+                    <h1 class="mb-0">
+                        謝進權
+                        <span class="text-primary">Brian</span>
+                    </h1>
+                    <div class="subheading mb-4">
+                        📍 324 桃園市 平鎮區&nbsp;·&nbsp;
+                        <a href="mailto:0103.brian@gmail.com" class="text-primary">0103.brian@gmail.com</a>
+                    </div>
+                    <p class="lead mb-4">具備北科大電子工程系背景，專攻軟硬體系統整合與嵌入式控制。擅長以 C/C++ 進行微控制器（如 STM32）開發，以及以 Verilog/FPGA 進行數位電路設計，並具備 Python 數據分析與 AI 演算法能力。<br><br>
+                    擁有桃園捷運數位發展中心實習經驗，主導 PHP 前後端整合開發與資料庫效能優化管理。多次代表學校於 WRO 自主足球機器人競賽中獲得國際與全國獎項，具備出色的控制系統設計與跨學科解決問題的能力。</p>
+                    
+                    <!-- Terminal CLI Widget -->
+                    <div class="terminal-container mb-4">
+                        <div class="terminal-header">
+                            <div class="terminal-buttons">
+                                <span class="terminal-btn close"></span>
+                                <span class="terminal-btn minimize"></span>
+                                <span class="terminal-btn maximize"></span>
+                            </div>
+                            <span class="terminal-title">brian_hsieh@developer_shell:~</span>
+                        </div>
+                        <div class="terminal-body" id="terminalBody">
+                            <div id="terminalOutput"></div>
+                            <div class="terminal-prompt">
+                                <span class="terminal-prompt-symbol">guest@brianchuan:~$</span>
+                                <input type="text" class="terminal-input" id="terminalInput" placeholder="Type command..." autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="terminal-shortcuts">
+                            <span class="terminal-shortcuts-title">快速探索:</span>
+                            <button class="terminal-shortcut-btn" data-cmd="about">about</button>
+                            <button class="terminal-shortcut-btn" data-cmd="skills">skills</button>
+                            <button class="terminal-shortcut-btn" data-cmd="projects">projects</button>
+                            <button class="terminal-shortcut-btn" data-cmd="contact">contact</button>
+                            <button class="terminal-shortcut-btn" data-cmd="clear">clear</button>
+                        </div>
+                    </div>
+
+                    <!-- Skills (Integrated directly into Section 1) -->
+                    <div class="skills-showcase-box mb-4 p-4 rounded" style="background: rgba(44, 62, 80, 0.03); border: 1px solid var(--border-color);">
+                        <h3 class="text-primary mb-3"><i class="fas fa-tools me-2"></i>Core Technical Skills</h3>
+                        <div class="subheading mb-3">Programming Languages & Tools</div>
+                        <ul class="list-inline dev-icons mb-3">
+                            <li class="list-inline-item" title="Python"><i class="fab fa-python"></i></li>
+                            <li class="list-inline-item" title="C Language"><i class="fas fa-code"></i> C</li>
+                            <li class="list-inline-item" title="C++"><i class="fas fa-code"></i> C++</li>
+                            <li class="list-inline-item" title="Java"><i class="fab fa-java"></i></li>
+                            <li class="list-inline-item" title="Git"><i class="fab fa-git-alt"></i></li>
+                            <li class="list-inline-item" title="GitHub"><i class="fab fa-github"></i></li>
+                            <li class="list-inline-item" title="HTML5"><i class="fab fa-html5"></i></li>
+                            <li class="list-inline-item" title="CSS3"><i class="fab fa-css3-alt"></i></li>
+                        </ul>
+                        
+                        <div class="lead">
+                            <ul style="padding-left: 20px; font-size: 15px;">
+                                <li class="mb-2"><b>嵌入式系統開發</b>：熟練於 STM32 物理按鍵、馬達中斷管理 (NVIC) 與邊緣硬體 C 語言驅動。</li>
+                                <li class="mb-2"><b>數位系統設計</b>：具備 Verilog 電路描述能力，能進行有限狀態機 (FSM) 電路與時脈限制調整。</li>
+                                <li class="mb-2"><b>前後端與資料庫</b>：具有實務 PHP 開發、資料庫維護、Grafana 維運數據監控與 SQL 效能查詢優化經驗。</li>
+                                <li class="mb-2"><b>AI 與科學計算</b>：擅長以 Python (Pandas, Scikit-Learn) 進行特徵工程設計與機器學習分類預測。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="social-icons mb-4">
+                        <a class="social-icon" href="https://www.linkedin.com/in/brian-hsieh0103/" target="_blank"><i class="fab fa-linkedin-in"></i></a>
+                        <a class="social-icon" href="https://github.com/BrianChuan" target="_blank"><i class="fab fa-github"></i></a>
+                        <a class="social-icon" href="https://www.facebook.com/Chinchuan0103/" target="_blank"><i class="fab fa-facebook-f"></i></a>
+                        <a class="social-icon" href="https://www.instagram.com/chinchuanhsieh/" target="_blank"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </section>
+            
+            <hr class="m-0" />
+            
+            <!-- ==========================================================================
+               Section 2: Projects & Portfolio
+               ========================================================================== -->
+            <section class="resume-section" id="projects">
+                <div class="resume-section-content">
+                    <h2 class="mb-4"><i class="fas fa-folder-open text-primary me-2"></i>Projects</h2>
+
+                    <!-- Filters -->
+                    <div class="portfolio-filters">
+                        <button class="filter-btn active" data-filter="all">全部專案</button>
+                        <button class="filter-btn" data-filter="course">課程專案</button>
+                        <button class="filter-btn" data-filter="contest">競賽專案</button>
+                        <button class="filter-btn" data-filter="side-project">Side Project (興趣開發)</button>
+                    </div>
+
+                    <!-- Projects Grid -->
+                    <div id="projectsGrid" class="projects-grid">
+                        <!-- Rendered by custom.js -->
+                    </div>
+                </div>
+            </section>
+
+            <hr class="m-0" />
+            
+            <!-- ==========================================================================
+               Section 3: Experience & Awards
+               ========================================================================== -->
+            <section class="resume-section" id="experience">
+                <div class="resume-section-content">
+                    <h2 class="mb-5"><i class="fas fa-briefcase text-primary me-2"></i>Experience & Awards</h2>
+                    
+                    <!-- Practical Experience Timeline -->
+                    <div class="timeline-item">
+                        <div class="timeline-date">July 2025 - October 2025</div>
+                        <h3 class="mb-0">數位發展中心實習生</h3>
+                        <div class="subheading mb-3">桃園大眾捷運股份有限公司 (Taoyuan Metro)</div>
+                        <p class="lead">
+                            1. <b>前後端與 API 整合開發</b>：使用 PHP、HTML/CSS 與 JavaScript 進行桃捷官方網頁與行動 App 的功能迭代維運，重構後台 RESTful API 邏輯以優化存取響應速度。<br>
+                            2. <b>SQL 資料庫效能管理</b>：編寫高效查詢與資料表關聯（JOIN）優化設計，優化資料表索引（Index），縮短營運數據報表複雜查詢的等待時間。<br>
+                            3. <b>維運監控數據分析</b>：建置開源 Dashboard 監控工具與 Grafana 可視化看板，將伺服器硬體負載與 API 響應時間視覺化，優化維運監控與系統警報回應效率。
+                        </p>
+                    </div>
+
+                    <!-- Cards Row for Awards & Certificates -->
+                    <div class="row mt-5">
+                        <!-- Card 1: Certificates (NVIDIA & iPAS) -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card bg-dark border-secondary p-4 h-100" style="background-color: var(--bg-secondary) !important; border: 1px solid var(--border-color) !important;">
+                                <h3 class="text-primary mb-3"><i class="fas fa-certificate me-2"></i>專業證照 & AI 認證</h3>
+                                <ul class="fa-ul mb-0">
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-shield-alt text-info"></i></span>
+                                        <b>iPAS 資訊安全工程師</b> 認證 (教育部/經濟部)
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-brain text-info"></i></span>
+                                        iPAS 人工智慧應用規劃師 初級
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-check-circle text-info"></i></span>
+                                        電腦硬體裝修 丙級技術士
+                                    </li>
+                                    <li class="mb-3">
+                                        <span class="fa-li"><i class="fas fa-check-circle text-info"></i></span>
+                                        AMA 先進微控制器應用認證
+                                    </li>
+                                    
+                                    <!-- NVIDIA Certifications -->
+                                    <li class="mt-4 mb-3 border-top pt-3" style="list-style: none; font-weight: 700; color: var(--accent-emerald);">
+                                        <i class="fas fa-microchip text-primary me-1"></i> NVIDIA 深度學習與 AI 認證
+                                    </li>
+                                    <li class="mb-2" style="font-size: 13.5px; list-style: none; padding-left: 0;">
+                                        <span class="fa-li"><i class="fas fa-certificate text-success"></i></span>
+                                        <b>Generative AI with Diffusion Models</b> (May 2026)<br>
+                                        <span class="text-muted" style="font-size: 11px;">Credential ID: 6YSchyAvQGWRCf1CJoKOIw</span>
+                                    </li>
+                                    <li class="mb-2" style="font-size: 13.5px; list-style: none; padding-left: 0;">
+                                        <span class="fa-li"><i class="fas fa-certificate text-success"></i></span>
+                                        <b>Building LLM Applications With Prompt Engineering</b> (May 2026)<br>
+                                        <span class="text-muted" style="font-size: 11px;">Credential ID: xmcBUPoxREobmSpZ6rFllA</span>
+                                    </li>
+                                    <li class="mb-2" style="font-size: 13.5px; list-style: none; padding-left: 0;">
+                                        <span class="fa-li"><i class="fas fa-certificate text-success"></i></span>
+                                        <b>深度學習基礎理論與實踐</b> (Dec 2025)<br>
+                                        <span class="text-muted" style="font-size: 11px;">Credential ID: c0f3JcFdTam8NyH2vYEl2g</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 2: Combined Competition Awards -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card bg-dark border-secondary p-4 h-100" style="background-color: var(--bg-secondary) !important; border: 1px solid var(--border-color) !important;">
+                                <h3 class="text-primary mb-3"><i class="fas fa-trophy me-2"></i>競賽獲獎與榮譽 (Awards & Honors)</h3>
+                                <ul class="fa-ul mb-0">
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        113學年度 北科大 學生實務專題競賽 <b>第二名</b>
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        2019 WRO Macau International Meeting - 足球組 <b>Football Merit Prize</b>
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        2021 全國技職盃創新創意專題實作競賽-電子群 <b>第三名</b>
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        2019 WRO 奧林匹亞智能機器人聯盟賽-足球組 <b>全國第三名</b>
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        2019 科技創造力機器人設計大賽-創意組 <b>第二名</b>
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        2018 全能機器人國際邀請賽-自主足球 <b>第二名</b>
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        110學年度 全國工業類學生技藝競賽 - 機器人職種 優勝
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        2018 WRO 奧林匹亞機器人全國總決賽-足球組 佳作
+                                    </li>
+                                    <li class="mb-2">
+                                        <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
+                                        2024 LINE FRESH 全國校園競賽 初賽晉級
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <hr class="m-0" />
+            
+            <!-- ==========================================================================
+               Section 4: Education & Interests
+               ========================================================================== -->
+            <section class="resume-section" id="education">
+                <div class="resume-section-content">
+                    <h2 class="mb-5"><i class="fas fa-graduation-cap text-primary me-2"></i>Education & Interests</h2>
+                    
+                    <!-- Education Timeline -->
+                    <div class="timeline-item">
+                        <div class="timeline-date">September 2022 - June 2026</div>
+                        <div class="d-flex align-items-center mb-2">
+                            <img src="assets/img/ntut.jpg" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" class="school-logo me-3" style="width: 45px; height: 45px; object-fit: contain;" alt="NTUT Logo">
+                            <span class="school-logo-fallback me-3" style="display:none; width: 45px; height: 45px; align-items: center; justify-content: center; background: var(--accent-emerald); color: white; border-radius: 50%; font-weight: 700; font-size: 13px;">NTUT</span>
+                            <div>
+                                <h3 class="mb-0">臺北科技大學電子工程系 (National Taipei University of Technology)</h3>
+                                <h4 class="mb-0 text-muted">Bachelor of Science in Electronic Engineering</h4>
+                                <div class="subheading">電子工程系</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item" style="margin-bottom: 50px;">
+                        <div class="timeline-date">August 2019 - May 2022</div>
+                        <div class="d-flex align-items-center">
+                            <img src="assets/img/lioho.png" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" class="school-logo me-3" style="width: 45px; height: 45px; object-fit: contain;" alt="Lio Ho Logo">
+                            <span class="school-logo-fallback me-3" style="display:none; width: 45px; height: 45px; align-items: center; justify-content: center; background: var(--accent-cyan); color: white; border-radius: 50%; font-weight: 700; font-size: 13px;">LH</span>
+                            <div>
+                                <h3 class="mb-0">六和高級中等學校 (Lio Ho High School)</h3>
+                                <h4 class="mb-0 text-muted">資訊科 (Computer Science)</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personal Interests Block (Integrated here) -->
+                    <div class="row align-items-center mt-5 pt-4 border-top">
+                        <div class="col-md-7">
+                            <p class="lead mb-4">
+                                <i class="fas fa-bicycle text-primary me-2"></i><b>公路車 (Road Cycling)</b>：在專業領域之外，我熱衷於透過公路車騎乘來保持身心平衡。挑戰武嶺等高難度路線，讓我能在風馳電掣中釋放壓力，並鍛鍊無懼困難的耐力。
+                            </p>
+                            <p class="lead mb-4">
+                                <i class="fas fa-mountain text-primary me-2"></i><b>爬山 (Hiking & Climbing)</b>：我熱愛登山與大自然探索。在每一步挑戰體能極限的攀登中，沿途壯麗的山林景色是我最佳的充電來源，這也深化了我面對複雜工程問題時的耐心與毅力。
+                            </p>
+                            <p class="lead mb-4">
+                                <i class="fas fa-running text-primary me-2"></i><b>慢跑 (Running)</b>：慢跑是我日常生活節奏的調和劑，它讓我專注於呼吸與當下的步伐，在揮灑汗水中重整思緒，維持高效專注的學習狀態。
+                            </p>
+                        </div>
+                        <div class="col-md-5 text-center">
+                            <img src="assets/img/roadbike.jpg" class="img-fluid rounded shadow" style="max-height: 280px; width: 100%; object-fit: cover; border: 3px solid var(--border-color);" alt="My Roadbike">
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ==========================================================================
+           Project Dynamic Details Blog Slide-over Panel
+           ========================================================================== -->
+        <div id="projectBlogPanel" class="project-blog-panel">
+            <div class="blog-panel-container">
+                <div class="blog-panel-header">
+                    <button class="blog-back-btn" onclick="closeProjectBlog()"><i class="fas fa-arrow-left"></i> 返回專案清單</button>
+                    <span id="blogProjectSemester" class="blog-project-date">114-2</span>
+                </div>
+                <div class="blog-panel-body">
+                    <h1 id="blogProjectTitle" class="blog-project-title">專案標題</h1>
+                    <div id="blogProjectCategory" class="mb-4">
+                        <span class="project-category course">課程專案</span>
+                    </div>
+
+                    <!-- Video Container -->
+                    <div id="blogVideoContainer" class="blog-video-container mb-4" style="display:none;">
+                        <iframe id="blogIframeVideo" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </div>
+
+                    <!-- Text Details -->
+                    <div id="blogProjectContent" class="blog-project-content lead">
+                        專案網誌詳細介紹內容...
+                    </div>
+
+                    <div class="blog-project-links mt-4 pt-4 border-top" id="blogProjectLinks">
+                        <!-- Links generated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bootstrap core JS-->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Core theme JS-->
+        <script src="js/scripts.js"></script>
+        <!-- Custom logic -->
+        <script src="js/custom.js"></script>
+    </body>
+</html>

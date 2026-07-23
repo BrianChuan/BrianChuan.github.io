@@ -1,0 +1,12 @@
+# Exclude PDF project reports and grading spreadsheets
+Project Reports/
+English Learning Plan/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

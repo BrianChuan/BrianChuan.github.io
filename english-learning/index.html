@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英文沉浸式學習紀錄器 | English Immersive Tracker</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <!-- Premium Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="glow-bg"></div>
+    
+    <!-- Top Navigation -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo">
+                <i class="fas fa-language text-cyan"></i>
+                <h1>英文沉浸式學習紀錄器 <span>Immersive Tracker</span></h1>
+            </div>
+            <a href="../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> 返回個人主頁</a>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <!-- Section 1: Dashboard Stats -->
+        <section class="dashboard-grid">
+            <!-- Streak Card -->
+            <div class="stats-card glass">
+                <div class="card-icon"><i class="fas fa-fire text-orange"></i></div>
+                <div class="card-info">
+                    <h3>學習天數 Streak</h3>
+                    <div class="stats-value"><span id="streakDays">0</span> 天</div>
+                    <p class="stats-subtitle">持續累積，培養英語直覺！</p>
+                </div>
+            </div>
+
+            <!-- Hours Progress Card -->
+            <div class="stats-card glass">
+                <div class="card-icon"><i class="fas fa-clock text-blue"></i></div>
+                <div class="card-info" style="width: 100%;">
+                    <h3>累計總時數</h3>
+                    <div class="stats-value"><span id="totalHours">0.0</span> / 100 小時</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="hoursProgressBar" style="width: 0%;"></div>
+                    </div>
+                    <p class="stats-subtitle" id="progressPctText">已完成 0% 的里程碑目標</p>
+                </div>
+            </div>
+
+            <!-- Active Checkpoints Card -->
+            <div class="stats-card glass">
+                <div class="card-icon"><i class="fas fa-tasks text-emerald"></i></div>
+                <div class="card-info">
+                    <h3>聽讀吸收率 (Easy Test)</h3>
+                    <div class="stats-value"><span id="lastTestScore">N/A</span> 分</div>
+                    <p class="stats-subtitle">最近一次自評或測驗成績</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Heatmap Card -->
+        <section class="heatmap-section glass mb-4">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-alt text-cyan"></i> 學習活動熱力圖 (Activity Heatmap)</h2>
+                <div class="heatmap-legend">
+                    <span>少</span>
+                    <span class="legend-box level-0"></span>
+                    <span class="legend-box level-1"></span>
+                    <span class="legend-box level-2"></span>
+                    <span class="legend-box level-3"></span>
+                    <span class="legend-box level-4"></span>
+                    <span>多 (達標 1hr+1hr)</span>
+                </div>
+            </div>
+            <div class="heatmap-wrapper">
+                <div id="heatmapGrid" class="heatmap-grid">
+                    <!-- Heatmap cells rendered dynamically -->
+                </div>
+            </div>
+            <div class="heatmap-footer-note">
+                * 綠色網格越深代表當天學習時數越多，亮青色網格表示完美達標（輸入與輸出皆達 60 分鐘）。
+            </div>
+        </section>
+
+        <!-- Section 2: Logging and Tools -->
+        <div class="content-split-layout">
+            <!-- Left Side: Loggers -->
+            <div class="layout-main-column">
+                <div class="logging-tabs glass">
+                    <div class="tab-headers">
+                        <button class="tab-btn active" data-tab="input-log-tab"><i class="fas fa-sign-in-alt text-cyan"></i> 輸入紀錄 (Input)</button>
+                        <button class="tab-btn" data-tab="output-log-tab"><i class="fas fa-sign-out-alt text-emerald"></i> 輸出紀錄 (Output)</button>
+                    </div>
+
+                    <!-- Input Logger -->
+                    <div id="input-log-tab" class="tab-content active">
+                        <form id="inputLogForm">
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label class="form-label">輸入來源</label>
+                                    <select id="inputSource" class="form-control-custom" required>
+                                        <option value="YouTube">YouTube 影片</option>
+                                        <option value="Podcast">Podcast 音訊</option>
+                                        <option value="Article">商業/科技文章</option>
+                                        <option value="Other">其他素材</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-6">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                                        <label class="form-label" style="margin-bottom:0;">學習時長 (分鐘)</label>
+                                        <button type="button" class="btn-text-only text-cyan" id="toggleInputTimerBtn" style="font-size:11px; font-weight:600;"><i class="fas fa-stopwatch"></i> 啟動計時器</button>
+                                    </div>
+                                    <div id="inputManualTimeBox">
+                                        <input type="number" id="inputDuration" class="form-control-custom" min="1" required placeholder="例如：60">
+                                    </div>
+                                    <div id="inputTimerBox" style="display: none; align-items: center; gap: 10px;">
+                                        <div class="timer-display" id="inputTimerDisplay">00:00</div>
+                                        <button type="button" class="btn-timer-action" id="startInputTimerBtn"><i class="fas fa-play"></i> 開始沉浸</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">影片標題 / 素材主題</label>
+                                    <input type="text" id="inputTitle" class="form-control-custom" required placeholder="例如：TechLinked - New Apple Silicon M5 Chips">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">記錄高頻生字 (選填，多個用半形逗號隔開)</label>
+                                <input type="text" id="inputVocabulary" class="form-control-custom" placeholder="例如：intuitive, persistent, bottleneck">
+                            </div>
+                            <div class="form-group passive-toggle-box">
+                                <input type="checkbox" id="inputPassive" class="passive-checkbox">
+                                <label for="inputPassive" class="passive-label">
+                                    <i class="fas fa-bed"></i> <strong>啟用疲勞備案 (被動聽讀)</strong> — 當天疲勞，僅作背景音播放。
+                                </label>
+                            </div>
+                            <div id="inputTimerAlert" class="alert-timer-info" style="display: none; margin-bottom: 20px;"></div>
+                            <button type="submit" class="btn-primary-custom w-100"><i class="fas fa-plus"></i> 新增輸入紀錄</button>
+                        </form>
+                    </div>
+
+                    <!-- Output Logger -->
+                    <div id="output-log-tab" class="tab-content">
+                        <form id="outputLogForm">
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label class="form-label">輸出練習方式</label>
+                                    <select id="outputType" class="form-control-custom" required>
+                                        <option value="AI Conversation">AI 線上對話 Practice</option>
+                                        <option value="Shadowing">影子跟讀法 (Shadowing)</option>
+                                        <option value="Writing">英文寫作/摘要練習</option>
+                                        <option value="Other">其他口說輸出</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-6">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                                        <label class="form-label" style="margin-bottom:0;">練習時長 (分鐘)</label>
+                                        <button type="button" class="btn-text-only text-emerald" id="toggleOutputTimerBtn" style="font-size:11px; font-weight:600;"><i class="fas fa-stopwatch"></i> 啟動計時器</button>
+                                    </div>
+                                    <div id="outputManualTimeBox">
+                                        <input type="number" id="outputDuration" class="form-control-custom" min="1" required placeholder="例如：45">
+                                    </div>
+                                    <div id="outputTimerBox" style="display: none; align-items: center; gap: 10px;">
+                                        <div class="timer-display" id="outputTimerDisplay">00:00</div>
+                                        <button type="button" class="btn-timer-action emerald" id="startOutputTimerBtn"><i class="fas fa-play"></i> 開始沉浸</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">討論主題 / 影片對應</label>
+                                <input type="text" id="outputTitle" class="form-control-custom" required placeholder="例如：討論剛剛的 TechLinked 晶片架構">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">流暢度自評 (對話流暢度為第一優先)</label>
+                                <div class="star-rating">
+                                    <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="極度流暢 (5 stars)"><i class="fas fa-star"></i></label>
+                                    <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="非常流暢 (4 stars)"><i class="fas fa-star"></i></label>
+                                    <input type="radio" id="star3" name="rating" value="3" checked><label for="star3" title="一般/偶有停頓 (3 stars)"><i class="fas fa-star"></i></label>
+                                    <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="生硬卡頓 (2 stars)"><i class="fas fa-star"></i></label>
+                                    <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="極度困難 (1 star)"><i class="fas fa-star"></i></label>
+                                </div>
+                            </div>
+                            <div id="outputTimerAlert" class="alert-timer-info emerald" style="display: none; margin-bottom: 20px;"></div>
+                            <button type="submit" class="btn-primary-custom w-100" style="background: var(--accent-emerald);"><i class="fas fa-plus"></i> 新增輸出紀錄</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Daily Logs History -->
+                <div class="logs-history-container glass mt-4">
+                    <div class="section-header">
+                        <h2><i class="fas fa-history text-cyan"></i> 近期學習紀錄</h2>
+                        <button class="btn-text-only" id="clearAllLogsBtn"><i class="fas fa-trash-alt"></i> 清除全部</button>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <!-- History items generated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Gemini Assistant & Anki Exporter -->
+            <div class="layout-side-column">
+                <!-- Gemini Live Companion Panel -->
+                <div class="tool-card glass mb-4">
+                    <h3><i class="fab fa-google text-cyan"></i> Gemini Live 語音對練伴侶</h3>
+                    <p class="tool-intro">搭配 Gemini Live (語音模式) 或 Gemini Gems 進行每日輸出對練：</p>
+                    
+                    <div class="prompt-copy-box">
+                        <div class="prompt-title">語音角色設定提示詞 (System Instruction)</div>
+                        <button class="btn-copy-prompt" id="copyPromptBtn"><i class="far fa-copy"></i> 複製指令</button>
+                    </div>
+
+                    <div class="feedback-parser-box">
+                        <div class="prompt-title">匯入 Gemini 結尾反饋與建議</div>
+                        <p class="tool-intro" style="font-size:12px; margin-top:2px;">對話結束後，複製 Gemini 提供的建議清單貼在下方，系統會自動解析並將生詞/例句儲存至單字本：</p>
+                        <textarea id="geminiFeedbackInput" class="form-control-custom" rows="4" placeholder="在此貼上 Gemini 對話結尾的回饋建議..."></textarea>
+                        <button class="btn-secondary-custom w-100 mt-2" id="parseFeedbackBtn"><i class="fas fa-magic"></i> 解析並儲存生字</button>
+                    </div>
+                </div>
+
+                <!-- Anki Vocabulary Box -->
+                <div class="tool-card glass mb-4">
+                    <div class="header-with-action">
+                        <h3><i class="fas fa-brain text-emerald"></i> Anki 待複習字卡 (<span id="vocabCount">0</span>)</h3>
+                        <button class="btn-text-only text-emerald" id="exportAnkiBtn"><i class="fas fa-file-export"></i> 匯出 CSV</button>
+                    </div>
+                    <p class="tool-intro">這裡記錄您在學習中記下的高頻生詞，可匯出直接導入 Anki 當中。</p>
+                    
+                    <div class="vocab-list-wrapper" id="vocabList">
+                        <!-- Vocabulary chips generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Sync & Backup Panel -->
+                <div class="tool-card glass">
+                    <h3><i class="fas fa-sync-alt text-blue"></i> 雲端同步與設定</h3>
+                    <div class="settings-group">
+                        <label class="form-label">Google Sheet Web App URL</label>
+                        <input type="password" id="googleAppUrlInput" class="form-control-custom" placeholder="https://script.google.com/macros/s/.../exec">
+                        <p class="tool-intro" style="font-size:11px; margin-top:4px;">* 串接 Google 試算表以同步備份。請參閱 <a href="./GoogleAppsScript.js" target="_blank" style="color:var(--accent-blue)">設定指南</a>。</p>
+                    </div>
+                    <div class="sync-actions mt-3">
+                        <button class="btn-secondary-custom" id="syncNowBtn" style="flex: 1;"><i class="fas fa-cloud-upload-alt"></i> 手動同步</button>
+                        <button class="btn-secondary-custom" id="exportLocalBtn" title="下載本機備份"><i class="fas fa-download"></i></button>
+                        <button class="btn-secondary-custom" id="importLocalBtn" title="匯入備份"><i class="fas fa-upload"></i></button>
+                        <input type="file" id="importFileHidden" style="display:none;" accept=".json">
+                    </div>
+                    <div class="sync-status mt-2 text-muted" id="syncStatusText">
+                        雲端同步未設定 (資料僅儲存於瀏覽器)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Checkpoints Milestones -->
+        <section class="checkpoint-section glass mt-4">
+            <div class="section-header">
+                <h2><i class="fas fa-flag text-cyan"></i> 里程碑與聽讀自評檢核 (Checkpoints)</h2>
+                <button class="btn-secondary-custom" id="addCheckpointBtn"><i class="fas fa-plus"></i> 新增檢核紀錄</button>
+            </div>
+            
+            <div class="checkpoint-content-wrapper">
+                <div class="checkpoint-intro">
+                    <p>當學習時數達 <strong>80~100 小時</strong> 後，建議透過線上的 Easy Test 進行客觀驗證，檢測聽力與閱讀的吸收效率，以利動態調整輸入影片/音訊教材之難度。</p>
+                </div>
+                
+                <div class="checkpoint-list-wrapper">
+                    <table class="checkpoint-table">
+                        <thead>
+                            <tr>
+                                <th>檢核日期</th>
+                                <th>累計學習時數</th>
+                                <th>自評/測驗分數</th>
+                                <th>教材難度調整與備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="checkpointTableBody">
+                            <!-- Checkpoints populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal for Checkpoint Add -->
+    <div id="checkpointModal" class="custom-modal">
+        <div class="modal-content-wrapper">
+            <div class="modal-content-header">
+                <h4><i class="fas fa-flag"></i> 新增里程碑檢核點</h4>
+                <button class="modal-close-btn" onclick="closeCheckpointModal()">&times;</button>
+            </div>
+            <form id="checkpointForm">
+                <div class="modal-content-body">
+                    <div class="form-group">
+                        <label class="form-label">自評/測驗日期</label>
+                        <input type="date" id="checkpointDate" class="form-control-custom" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">當前累計學習時數 (小時)</label>
+                        <input type="number" id="checkpointHours" class="form-control-custom" min="0" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Easy Test 或自評成績 (分)</label>
+                        <input type="number" id="checkpointScore" class="form-control-custom" min="0" max="100" required placeholder="例如：85">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">教材調整與心得備註</label>
+                        <textarea id="checkpointNotes" class="form-control-custom" rows="3" placeholder="例如：聽力理解率達 90%，下階段預計增加科技結合商業的進階內容。"></textarea>
+                    </div>
+                </div>
+                <div class="modal-content-footer">
+                    <button type="button" class="btn-custom btn-custom-secondary" onclick="closeCheckpointModal()">取消</button>
+                    <button type="submit" class="btn-custom btn-custom-primary">確認儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden system prompt holder (for clipboard copying) -->
+    <textarea id="hiddenPromptHolder" style="display:none;"></textarea>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 Brian Hsieh. Powered by GitHub Pages & Google Sheets.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
