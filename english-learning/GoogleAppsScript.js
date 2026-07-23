@@ -44,11 +44,6 @@ function doPost(e) {
       status: "success",
       message: "Sync completed successfully"
     }))
-    .setHeaders({
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    })
     .setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {
@@ -56,23 +51,8 @@ function doPost(e) {
       status: "error",
       message: error.toString()
     }))
-    .setHeaders({
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    })
     .setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-// 支援 CORS OPTIONS 請求
-function doOptions(e) {
-  return ContentService.createTextOutput("")
-    .setHeaders({
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    });
 }
 
 function syncLogsSheet(ss, logs) {
