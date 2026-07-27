@@ -39,8 +39,6 @@ Follow these strict rules to optimize for voice-based (Gemini Live) interaction:
 let logs = [];
 let vocab = [];
 let checkpoints = [];
-let settings = { workerUrl: "", accessKey: "" };
-
 // Timer State Variables
 let inputTimerInterval = null;
 let inputTimerSeconds = 0;
@@ -51,9 +49,8 @@ let outputTimerStartTime = null;
 let activeTimerType = null; // 'input' or 'output' or null
 
 // Initialize App
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   loadData();
-  await loadConfigJson();
   setupEventListeners();
   renderAll();
 });
@@ -63,49 +60,6 @@ function loadData() {
   logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
   vocab = JSON.parse(localStorage.getItem(VOCAB_KEY)) || [];
   checkpoints = JSON.parse(localStorage.getItem(CHECKPOINTS_KEY)) || [];
-  settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { workerUrl: "", accessKey: "" };
-
-  // Migrate legacy setting if exists
-  if (settings.googleAppUrl && !settings.workerUrl) {
-    settings.workerUrl = settings.googleAppUrl;
-    delete settings.googleAppUrl;
-  }
-
-  // Set initial settings in inputs
-  const workerInput = document.getElementById("cloudflareWorkerUrlInput");
-  const keyInput = document.getElementById("syncAccessKeyInput");
-  if (workerInput && settings.workerUrl) {
-    workerInput.value = settings.workerUrl;
-  }
-  if (keyInput && settings.accessKey) {
-    keyInput.value = settings.accessKey;
-  }
-}
-
-// Load configuration variables from local config.json file (gitignored)
-async function loadConfigJson() {
-  try {
-    const response = await fetch("config.json");
-    if (response.ok) {
-      const config = await response.json();
-      if (config.workerUrl) {
-        settings.workerUrl = config.workerUrl;
-      }
-      if (config.accessKey) {
-        settings.accessKey = config.accessKey;
-      }
-
-      // Update DOM inputs to match newly loaded credentials
-      const workerInput = document.getElementById("cloudflareWorkerUrlInput");
-      const keyInput = document.getElementById("syncAccessKeyInput");
-      if (workerInput) workerInput.value = settings.workerUrl;
-      if (keyInput) keyInput.value = settings.accessKey;
-
-      console.log("Successfully loaded credentials from local config.json");
-    }
-  } catch (e) {
-    console.log("No local config.json found or failed to load. Falling back to browser LocalStorage.");
-  }
 }
 
 // Save Data to LocalStorage
@@ -113,7 +67,6 @@ function saveData() {
   localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
   localStorage.setItem(VOCAB_KEY, JSON.stringify(vocab));
   localStorage.setItem(CHECKPOINTS_KEY, JSON.stringify(checkpoints));
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
 // Event Listeners Routing
@@ -149,16 +102,6 @@ function setupEventListeners() {
   document.getElementById("importFileHidden").addEventListener("change", importLocalBackup);
 
   // Sync settings
-  document.getElementById("cloudflareWorkerUrlInput").addEventListener("change", (e) => {
-    settings.workerUrl = e.target.value.trim();
-    saveData();
-    updateSyncStatusText();
-  });
-  document.getElementById("syncAccessKeyInput").addEventListener("change", (e) => {
-    settings.accessKey = e.target.value.trim();
-    saveData();
-    updateSyncStatusText();
-  });
   document.getElementById("syncNowBtn").addEventListener("click", syncWithGoogleSheets);
 
   // Checkpoint Modal
@@ -847,11 +790,7 @@ function clearAllLogs() {
    Cloudflare Worker Sync Integration
    ========================================================================== */
 async function syncWithGoogleSheets() {
-  const url = settings.workerUrl;
-  if (!url) {
-    alert("請先在雲端同步面板填入您的 Cloudflare Worker 網址！");
-    return;
-  }
+  const url = "/api/sync";
 
   const syncStatus = document.getElementById("syncStatusText");
   const syncBtn = document.getElementById("syncNowBtn");
@@ -860,7 +799,7 @@ async function syncWithGoogleSheets() {
   try {
     syncBtn.disabled = true;
     syncBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 同步中...`;
-    syncStatus.innerText = "正在透過 Cloudflare Worker 代理同步資料...";
+    syncStatus.innerText = "正在透過 Cloudflare Pages 代理同步資料...";
 
     // Package the full database state to push
     const payload = {
@@ -872,15 +811,11 @@ async function syncWithGoogleSheets() {
 
     const res = await fetch(url, {
       method: "POST",
-      mode: "cors",
       headers: {
-        "Content-Type": "application/json",
-        "X-Sync-Token": settings.accessKey || ""
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
     });
-
-    if (res.status === 401) throw new Error("401 Unauthorized. 同步安全金鑰不正確，請檢查金鑰設定。");
     if (!res.ok) throw new Error(`HTTP ${res.status} 錯誤。伺服器或代理端回傳異常。`);
     
     const responseJson = await res.json();
@@ -922,20 +857,16 @@ function updateSyncStatusText() {
   const syncStatus = document.getElementById("syncStatusText");
   if (!syncStatus) return;
 
-  if (settings.workerUrl) {
-    // Check if any logs, vocab, or checkpoints are unsynced
-    const unsyncedLogs = logs.filter(l => !l.synced).length;
-    const unsyncedVocabs = vocab.filter(v => !v.synced).length;
-    const unsyncedCps = checkpoints.filter(c => !c.synced).length;
-    const unsyncedCount = unsyncedLogs + unsyncedVocabs + unsyncedCps;
+  // Check if any logs, vocab, or checkpoints are unsynced
+  const unsyncedLogs = logs.filter(l => !l.synced).length;
+  const unsyncedVocabs = vocab.filter(v => !v.synced).length;
+  const unsyncedCps = checkpoints.filter(c => !c.synced).length;
+  const unsyncedCount = unsyncedLogs + unsyncedVocabs + unsyncedCps;
 
-    if (unsyncedCount > 0) {
-      syncStatus.innerHTML = `<span class="text-orange"><i class="fas fa-exclamation-triangle"></i> 有 ${unsyncedCount} 筆新資料尚未同步</span>`;
-    } else {
-      syncStatus.innerHTML = `<span class="text-emerald"><i class="fas fa-check-circle"></i> 資料已全數安全同步至雲端</span>`;
-    }
+  if (unsyncedCount > 0) {
+    syncStatus.innerHTML = `<span class="text-orange"><i class="fas fa-exclamation-triangle"></i> 有 ${unsyncedCount} 筆新資料尚未同步</span>`;
   } else {
-    syncStatus.innerText = "雲端同步未設定 (資料僅儲存於本機)";
+    syncStatus.innerHTML = `<span class="text-emerald"><i class="fas fa-check-circle"></i> 資料已全數安全同步至雲端</span>`;
   }
 }
 

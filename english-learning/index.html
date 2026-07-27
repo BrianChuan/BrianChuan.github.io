@@ -238,13 +238,9 @@
                 <div class="tool-card glass">
                     <h3><i class="fas fa-sync-alt text-blue"></i> 雲端同步與設定 (方案 A)</h3>
                     <div class="settings-group">
-                        <label class="form-label" style="margin-top: 10px;">Cloudflare Worker 網址</label>
-                        <input type="text" id="cloudflareWorkerUrlInput" class="form-control-custom" placeholder="https://xxx.xxx.workers.dev">
-                        
-                        <label class="form-label" style="margin-top: 10px; display: block;">同步安全金鑰 (Access Key)</label>
-                        <input type="password" id="syncAccessKeyInput" class="form-control-custom" placeholder="輸入您自訂的安全金鑰">
-                        
-                        <p class="tool-intro" style="font-size:11px; margin-top:8px;">* 通過 Cloudflare Worker 代理以安全隱蔽地備份至 Google 試算表。請參閱 <a href="./CloudflareWorker.js" target="_blank" style="color:var(--accent-blue)">設定指南</a>。</p>
+                        <p class="tool-intro" style="font-size:12px; margin-top:8px; margin-bottom:0;">
+                            * 已啟動 Cloudflare Pages 同網域安全代理，無需設定金鑰或網址，點擊下方按鈕即可一鍵同步。
+                        </p>
                     </div>
                     <div class="sync-actions mt-3">
                         <button class="btn-secondary-custom" id="syncNowBtn" style="flex: 1;"><i class="fas fa-cloud-upload-alt"></i> 手動同步</button>
