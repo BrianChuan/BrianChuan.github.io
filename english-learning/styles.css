@@ -939,3 +939,282 @@ body {
   border: 1px solid rgba(44, 62, 80, 0.15);
   color: var(--accent-emerald);
 }
+
+/* ==========================================================================
+   5. Zone Mode & Floating Tooltip & Badge Styles
+   ========================================================================== */
+
+/* Zone Mode Overlay */
+.zone-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.zone-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.zone-content {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* Pulsating Focus Rings */
+.zone-glow-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 320px;
+  height: 320px;
+  margin-top: -160px;
+  margin-left: -160px;
+  border-radius: 50%;
+  border: 1px solid rgba(142, 110, 102, 0.25); /* Terracotta tint */
+  pointer-events: none;
+}
+
+.zone-overlay.output-mode .zone-glow-ring {
+  border-color: rgba(16, 185, 129, 0.2); /* Emerald tint */
+}
+
+.zone-glow-ring.ring-1 {
+  animation: pulse-ring 8s infinite linear;
+}
+.zone-glow-ring.ring-2 {
+  animation: pulse-ring 8s infinite linear 2.66s;
+}
+.zone-glow-ring.ring-3 {
+  animation: pulse-ring 8s infinite linear 5.33s;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* Info container */
+.zone-info-container {
+  z-index: 10;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.zone-badge {
+  background: rgba(142, 110, 102, 0.25);
+  color: #fca5a5;
+  border: 1px solid rgba(142, 110, 102, 0.4);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.zone-overlay.output-mode .zone-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: #a7f3d0;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.zone-title {
+  font-size: 24px;
+  font-weight: 500;
+  max-width: 600px;
+  line-height: 1.4;
+  color: #e2e8f0;
+  margin-top: 10px;
+}
+
+.zone-timer-display {
+  font-size: 96px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.1));
+  letter-spacing: -0.02em;
+  margin: 15px 0;
+}
+
+.zone-breathing-guide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.breath-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  animation: breath-dot-anim 4s infinite ease-in-out;
+}
+
+.zone-overlay.output-mode .breath-dot {
+  background-color: #10b981;
+}
+
+@keyframes breath-dot-anim {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(2.2);
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+  }
+}
+
+.zone-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.btn-zone-action {
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-zone-action.stop {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.btn-zone-action.stop:hover {
+  background: #dc2626;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+.btn-zone-action.minimize {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+
+.btn-zone-action.minimize:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+/* Floating widget when minimized */
+.zone-floating-badge {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 20px;
+  border-radius: 50px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: var(--transition);
+  animation: float-badge 3s infinite ease-in-out;
+}
+
+.zone-floating-badge:hover {
+  transform: translateY(-5px) scale(1.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.floating-badge-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+@keyframes float-badge {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Floating cursor tooltip for heatmap */
+.heatmap-tooltip {
+  background: rgba(15, 23, 42, 0.95);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+  line-height: 1.4;
+}
+
+/* Custom modal inner styling adjustments */
+.modal-content-body h5 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-left: 3px solid;
+  padding-left: 8px;
+}
+
+.modal-content-body h5 i {
+  margin-right: 4px;
+}
+

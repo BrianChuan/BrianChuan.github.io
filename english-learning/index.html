@@ -236,11 +236,15 @@
 
                 <!-- Sync & Backup Panel -->
                 <div class="tool-card glass">
-                    <h3><i class="fas fa-sync-alt text-blue"></i> 雲端同步與設定</h3>
+                    <h3><i class="fas fa-sync-alt text-blue"></i> 雲端同步與設定 (方案 A)</h3>
                     <div class="settings-group">
-                        <label class="form-label">Google Sheet Web App URL</label>
-                        <input type="password" id="googleAppUrlInput" class="form-control-custom" placeholder="https://script.google.com/macros/s/.../exec">
-                        <p class="tool-intro" style="font-size:11px; margin-top:4px;">* 串接 Google 試算表以同步備份。請參閱 <a href="./GoogleAppsScript.js" target="_blank" style="color:var(--accent-blue)">設定指南</a>。</p>
+                        <label class="form-label" style="margin-top: 10px;">Cloudflare Worker 網址</label>
+                        <input type="text" id="cloudflareWorkerUrlInput" class="form-control-custom" placeholder="https://xxx.xxx.workers.dev">
+                        
+                        <label class="form-label" style="margin-top: 10px; display: block;">同步安全金鑰 (Access Key)</label>
+                        <input type="password" id="syncAccessKeyInput" class="form-control-custom" placeholder="輸入您自訂的安全金鑰">
+                        
+                        <p class="tool-intro" style="font-size:11px; margin-top:8px;">* 通過 Cloudflare Worker 代理以安全隱蔽地備份至 Google 試算表。請參閱 <a href="./CloudflareWorker.js" target="_blank" style="color:var(--accent-blue)">設定指南</a>。</p>
                     </div>
                     <div class="sync-actions mt-3">
                         <button class="btn-secondary-custom" id="syncNowBtn" style="flex: 1;"><i class="fas fa-cloud-upload-alt"></i> 手動同步</button>
@@ -320,6 +324,62 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal for Day History -->
+    <div id="dayHistoryModal" class="custom-modal">
+        <div class="modal-content-wrapper">
+            <div class="modal-content-header">
+                <h4><i class="fas fa-history text-cyan"></i> <span id="historyModalDate">2026-07-27</span> 學習紀錄歷史</h4>
+                <button class="modal-close-btn" onclick="closeHistoryModal()">&times;</button>
+            </div>
+            <div class="modal-content-body" style="max-height: 70vh; overflow-y: auto;">
+                <div id="historyModalContent">
+                    <!-- Dynamic history content -->
+                </div>
+            </div>
+            <div class="modal-content-footer">
+                <button type="button" class="btn-custom btn-custom-secondary" onclick="closeHistoryModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zone Mode Overlay -->
+    <div id="zoneOverlay" class="zone-overlay">
+        <div class="zone-content">
+            <!-- Pulsating Focus Rings -->
+            <div class="zone-glow-ring ring-1"></div>
+            <div class="zone-glow-ring ring-2"></div>
+            <div class="zone-glow-ring ring-3"></div>
+
+            <div class="zone-info-container">
+                <div class="zone-badge" id="zoneBadgeType">輸入沉浸中</div>
+                <h2 class="zone-title" id="zoneFocusTitle">正在進行沉浸式學習</h2>
+                <div class="zone-timer-display" id="zoneTimerDisplay">00:00</div>
+                
+                <!-- Breathing guide / Focus indicator animation -->
+                <div class="zone-breathing-guide">
+                    <span class="breath-dot"></span>
+                    <span class="breath-text">保持專注，放鬆呼吸...</span>
+                </div>
+
+                <div class="zone-actions">
+                    <button type="button" class="btn-zone-action stop" id="zoneStopBtn"><i class="fas fa-stop"></i> 結束並記錄</button>
+                    <button type="button" class="btn-zone-action minimize" id="zoneMinimizeBtn"><i class="fas fa-compress-alt"></i> 縮小視窗</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Badge when minimized -->
+    <div id="zoneFloatingBadge" class="zone-floating-badge" style="display: none;">
+        <div class="floating-badge-content">
+            <i class="fas fa-circle-notch fa-spin text-cyan" id="floatingBadgeIcon"></i>
+            <span id="floatingBadgeTimer">00:00</span>
+        </div>
+    </div>
+
+    <!-- Custom Heatmap Tooltip -->
+    <div id="heatmapTooltip" class="heatmap-tooltip" style="display: none; position: absolute; z-index: 1000; pointer-events: none;"></div>
 
     <!-- Hidden system prompt holder (for clipboard copying) -->
     <textarea id="hiddenPromptHolder" style="display:none;"></textarea>

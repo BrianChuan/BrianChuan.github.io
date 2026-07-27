@@ -39,17 +39,21 @@ Follow these strict rules to optimize for voice-based (Gemini Live) interaction:
 let logs = [];
 let vocab = [];
 let checkpoints = [];
-let settings = { googleAppUrl: "" };
+let settings = { workerUrl: "", accessKey: "" };
 
 // Timer State Variables
 let inputTimerInterval = null;
 let inputTimerSeconds = 0;
+let inputTimerStartTime = null;
 let outputTimerInterval = null;
 let outputTimerSeconds = 0;
+let outputTimerStartTime = null;
+let activeTimerType = null; // 'input' or 'output' or null
 
 // Initialize App
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   loadData();
+  await loadConfigJson();
   setupEventListeners();
   renderAll();
 });
@@ -59,12 +63,48 @@ function loadData() {
   logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
   vocab = JSON.parse(localStorage.getItem(VOCAB_KEY)) || [];
   checkpoints = JSON.parse(localStorage.getItem(CHECKPOINTS_KEY)) || [];
-  settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { googleAppUrl: "" };
+  settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { workerUrl: "", accessKey: "" };
 
-  // Set initial settings URL in input
-  const urlInput = document.getElementById("googleAppUrlInput");
-  if (urlInput && settings.googleAppUrl) {
-    urlInput.value = settings.googleAppUrl;
+  // Migrate legacy setting if exists
+  if (settings.googleAppUrl && !settings.workerUrl) {
+    settings.workerUrl = settings.googleAppUrl;
+    delete settings.googleAppUrl;
+  }
+
+  // Set initial settings in inputs
+  const workerInput = document.getElementById("cloudflareWorkerUrlInput");
+  const keyInput = document.getElementById("syncAccessKeyInput");
+  if (workerInput && settings.workerUrl) {
+    workerInput.value = settings.workerUrl;
+  }
+  if (keyInput && settings.accessKey) {
+    keyInput.value = settings.accessKey;
+  }
+}
+
+// Load configuration variables from local config.json file (gitignored)
+async function loadConfigJson() {
+  try {
+    const response = await fetch("config.json");
+    if (response.ok) {
+      const config = await response.json();
+      if (config.workerUrl) {
+        settings.workerUrl = config.workerUrl;
+      }
+      if (config.accessKey) {
+        settings.accessKey = config.accessKey;
+      }
+
+      // Update DOM inputs to match newly loaded credentials
+      const workerInput = document.getElementById("cloudflareWorkerUrlInput");
+      const keyInput = document.getElementById("syncAccessKeyInput");
+      if (workerInput) workerInput.value = settings.workerUrl;
+      if (keyInput) keyInput.value = settings.accessKey;
+
+      console.log("Successfully loaded credentials from local config.json");
+    }
+  } catch (e) {
+    console.log("No local config.json found or failed to load. Falling back to browser LocalStorage.");
   }
 }
 
@@ -109,8 +149,13 @@ function setupEventListeners() {
   document.getElementById("importFileHidden").addEventListener("change", importLocalBackup);
 
   // Sync settings
-  document.getElementById("googleAppUrlInput").addEventListener("change", (e) => {
-    settings.googleAppUrl = e.target.value.trim();
+  document.getElementById("cloudflareWorkerUrlInput").addEventListener("change", (e) => {
+    settings.workerUrl = e.target.value.trim();
+    saveData();
+    updateSyncStatusText();
+  });
+  document.getElementById("syncAccessKeyInput").addEventListener("change", (e) => {
+    settings.accessKey = e.target.value.trim();
     saveData();
     updateSyncStatusText();
   });
@@ -127,6 +172,27 @@ function setupEventListeners() {
   document.getElementById("startInputTimerBtn").addEventListener("click", handleInputTimerAction);
   document.getElementById("toggleOutputTimerBtn").addEventListener("click", toggleOutputTimerUI);
   document.getElementById("startOutputTimerBtn").addEventListener("click", handleOutputTimerAction);
+
+  // Zone Mode Controls
+  document.getElementById("zoneStopBtn").addEventListener("click", () => {
+    if (activeTimerType === "input") {
+      handleInputTimerAction();
+    } else if (activeTimerType === "output") {
+      handleOutputTimerAction();
+    }
+  });
+  document.getElementById("zoneMinimizeBtn").addEventListener("click", () => {
+    document.getElementById("zoneOverlay").classList.remove("show");
+    document.getElementById("zoneFloatingBadge").style.display = "block";
+  });
+  document.getElementById("zoneFloatingBadge").addEventListener("click", () => {
+    document.getElementById("zoneOverlay").classList.add("show");
+    document.getElementById("zoneFloatingBadge").style.display = "none";
+  });
+
+  // Page Visibility listeners
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("focus", handleVisibilityChange);
 }
 
 /* ==========================================================================
@@ -293,7 +359,20 @@ function renderHeatmap() {
       if (dayLog.output > 0) items.push(`輸出 ${dayLog.output} 分鐘`);
       tooltip += items.join(", ");
     }
-    cell.title = tooltip;
+    
+    // Custom cursor-following tooltip events and click history modal
+    cell.addEventListener("mouseenter", (e) => {
+      showTooltip(e, tooltip);
+    });
+    cell.addEventListener("mousemove", (e) => {
+      moveTooltip(e);
+    });
+    cell.addEventListener("mouseleave", () => {
+      hideTooltip();
+    });
+    cell.addEventListener("click", () => {
+      openHistoryModal(dateStr);
+    });
 
     grid.appendChild(cell);
     tempDate.setDate(tempDate.getDate() + 1);
@@ -456,7 +535,8 @@ function submitInputLog() {
           word,
           definition: "",
           date: dateStr,
-          source: title
+          source: title,
+          synced: false
         });
       }
     });
@@ -598,7 +678,8 @@ function parseGeminiFeedback() {
           word: word,
           definition: definition,
           date: dateStr,
-          source: "Gemini Live Feedback"
+          source: "Gemini Live Feedback",
+          synced: false
         });
         parsedCount++;
       }
@@ -680,7 +761,8 @@ function handleCheckpointAdd(e) {
     date,
     hours: Number(hours),
     score: Number(score),
-    notes
+    notes,
+    synced: false
   };
 
   checkpoints.push(newCheckpoint);
@@ -762,12 +844,12 @@ function clearAllLogs() {
 }
 
 /* ==========================================================================
-   Google Sheets Sync Integration (POST endpoint)
+   Cloudflare Worker Sync Integration
    ========================================================================== */
 async function syncWithGoogleSheets() {
-  const url = settings.googleAppUrl;
+  const url = settings.workerUrl;
   if (!url) {
-    alert("請先在雲端同步面板填入您的 Google Apps Script Web App URL！");
+    alert("請先在雲端同步面板填入您的 Cloudflare Worker 網址！");
     return;
   }
 
@@ -778,10 +860,9 @@ async function syncWithGoogleSheets() {
   try {
     syncBtn.disabled = true;
     syncBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 同步中...`;
-    syncStatus.innerText = "正在連線 Google Sheet 同步端點...";
+    syncStatus.innerText = "正在透過 Cloudflare Worker 代理同步資料...";
 
     // Package the full database state to push
-    // We send full logs, vocab, checkpoints to allow Google Apps Script to parse and fully synchronize/append
     const payload = {
       action: "sync",
       logs: logs,
@@ -789,37 +870,48 @@ async function syncWithGoogleSheets() {
       checkpoints: checkpoints
     };
 
-    // Google Apps Script requires CORS or POST with no-cors. 
-    // To read the response status safely, we must configure Google script to return JSON and handle pre-flight.
-    // If using no-cors, fetch resolves but response.ok is false and body is inaccessible.
-    // So we use standard fetch with POST.
     const res = await fetch(url, {
       method: "POST",
-      mode: "cors", // script must handle CORS options properly
+      mode: "cors",
       headers: {
-        "Content-Type": "text/plain" // Prevents CORS preflight issues in Google Web App
+        "Content-Type": "application/json",
+        "X-Sync-Token": settings.accessKey || ""
       },
       body: JSON.stringify(payload)
     });
 
-    if (!res.ok) throw new Error("HTTP POST failed. 伺服器端回傳錯誤代碼。");
+    if (res.status === 401) throw new Error("401 Unauthorized. 同步安全金鑰不正確，請檢查金鑰設定。");
+    if (!res.ok) throw new Error(`HTTP ${res.status} 錯誤。伺服器或代理端回傳異常。`);
     
     const responseJson = await res.json();
     if (responseJson.status === "success") {
       syncStatus.innerText = `同步成功！上次同步時間: ${new Date().toLocaleTimeString()}`;
       
-      // Update local logs to synced = true
-      logs.forEach(l => l.synced = true);
-      saveData();
+      // Update local storage with merged lists
+      if (responseJson.logs) {
+        logs = responseJson.logs;
+        logs.forEach(l => l.synced = true);
+      }
+      if (responseJson.vocab) {
+        vocab = responseJson.vocab;
+        vocab.forEach(v => v.synced = true);
+      }
+      if (responseJson.checkpoints) {
+        checkpoints = responseJson.checkpoints;
+        checkpoints.forEach(c => c.synced = true);
+      }
       
-      alert("同步成功！您的學習紀錄已安全備份至 Google 試算表。");
+      saveData();
+      renderAll();
+      
+      alert("同步成功！資料已與 Google 試算表完成雙向安全同步。");
     } else {
       throw new Error(responseJson.message || "未知伺服器錯誤");
     }
   } catch (error) {
-    console.error("Sheets Sync Error:", error);
-    syncStatus.innerText = "同步失敗，請確認 Web App URL 權限配置。";
-    alert("雲端同步失敗！請確認以下項目：\n1. Web App 部署為「任何人 (Anyone)」可存取。\n2. URL 正確無誤。");
+    console.error("Sync Error:", error);
+    syncStatus.innerText = "同步失敗，請確認 Worker 網址與金鑰配置。";
+    alert(`雲端同步失敗！\n錯誤原因：${error.message}\n\n請確認以下項目：\n1. Cloudflare Worker 已部署且環境變數配置正確。\n2. Worker 網址與安全金鑰正確無誤。\n3. 您是從允許的網域（如 GitHub Pages）進行存取。`);
   } finally {
     syncBtn.disabled = false;
     syncBtn.innerHTML = originalBtnHtml;
@@ -830,13 +922,17 @@ function updateSyncStatusText() {
   const syncStatus = document.getElementById("syncStatusText");
   if (!syncStatus) return;
 
-  if (settings.googleAppUrl) {
-    // Check if any logs are unsynced
-    const unsyncedCount = logs.filter(l => !l.synced).length;
+  if (settings.workerUrl) {
+    // Check if any logs, vocab, or checkpoints are unsynced
+    const unsyncedLogs = logs.filter(l => !l.synced).length;
+    const unsyncedVocabs = vocab.filter(v => !v.synced).length;
+    const unsyncedCps = checkpoints.filter(c => !c.synced).length;
+    const unsyncedCount = unsyncedLogs + unsyncedVocabs + unsyncedCps;
+
     if (unsyncedCount > 0) {
       syncStatus.innerHTML = `<span class="text-orange"><i class="fas fa-exclamation-triangle"></i> 有 ${unsyncedCount} 筆新資料尚未同步</span>`;
     } else {
-      syncStatus.innerHTML = `<span class="text-emerald"><i class="fas fa-check-circle"></i> 資料已全數同步至雲端</span>`;
+      syncStatus.innerHTML = `<span class="text-emerald"><i class="fas fa-check-circle"></i> 資料已全數安全同步至雲端</span>`;
     }
   } else {
     syncStatus.innerText = "雲端同步未設定 (資料僅儲存於本機)";
@@ -854,7 +950,7 @@ function getLocalDateString(date) {
 }
 
 /* ==========================================================================
-   4. Immersion Timers / Stopwatch Logic
+   4. Immersion Timers / Stopwatch Logic & Zone Overlay
    ========================================================================== */
 
 // Input Timer Toggle
@@ -888,7 +984,23 @@ function handleInputTimerAction() {
   if (!inputTimerInterval) {
     // Start Timer
     inputTimerSeconds = 0;
+    inputTimerStartTime = Date.now();
+    activeTimerType = "input";
+    
+    // Configure and show Zone Overlay
+    const titleField = document.getElementById("inputTitle");
+    const focusTitle = titleField.value.trim() || "未命名沉浸影片/素材";
+    
+    const zoneOverlay = document.getElementById("zoneOverlay");
+    zoneOverlay.classList.remove("output-mode");
+    document.getElementById("zoneBadgeType").innerText = "輸入沉浸中";
+    document.getElementById("zoneFocusTitle").innerText = focusTitle;
+    
     updateInputTimerDisplay();
+    
+    zoneOverlay.classList.add("show");
+    document.getElementById("zoneFloatingBadge").style.display = "none";
+    
     startBtn.innerHTML = `<i class="fas fa-stop"></i> 結束沉浸`;
     startBtn.classList.add("active");
     
@@ -896,13 +1008,20 @@ function handleInputTimerAction() {
     document.getElementById("inputTimerAlert").style.display = "none";
 
     inputTimerInterval = setInterval(() => {
-      inputTimerSeconds++;
+      if (inputTimerStartTime) {
+        inputTimerSeconds = Math.floor((Date.now() - inputTimerStartTime) / 1000);
+      }
       updateInputTimerDisplay();
     }, 1000);
   } else {
     // Stop Timer
     clearInterval(inputTimerInterval);
     inputTimerInterval = null;
+    
+    // Hide overlay & badge
+    document.getElementById("zoneOverlay").classList.remove("show");
+    document.getElementById("zoneFloatingBadge").style.display = "none";
+    activeTimerType = null;
     
     const mins = Math.max(1, Math.round(inputTimerSeconds / 60));
     
@@ -946,7 +1065,10 @@ function handleInputTimerAction() {
 function updateInputTimerDisplay() {
   const mins = Math.floor(inputTimerSeconds / 60).toString().padStart(2, '0');
   const secs = (inputTimerSeconds % 60).toString().padStart(2, '0');
-  document.getElementById("inputTimerDisplay").innerText = `${mins}:${secs}`;
+  const timeStr = `${mins}:${secs}`;
+  document.getElementById("inputTimerDisplay").innerText = timeStr;
+  document.getElementById("zoneTimerDisplay").innerText = timeStr;
+  document.getElementById("floatingBadgeTimer").innerText = timeStr;
 }
 
 function resetInputTimer() {
@@ -955,6 +1077,7 @@ function resetInputTimer() {
     inputTimerInterval = null;
   }
   inputTimerSeconds = 0;
+  inputTimerStartTime = null;
   updateInputTimerDisplay();
   const startBtn = document.getElementById("startInputTimerBtn");
   startBtn.innerHTML = `<i class="fas fa-play"></i> 開始沉浸`;
@@ -1000,20 +1123,43 @@ function handleOutputTimerAction() {
   if (!outputTimerInterval) {
     // Start Timer
     outputTimerSeconds = 0;
+    outputTimerStartTime = Date.now();
+    activeTimerType = "output";
+    
+    // Configure and show Zone Overlay
+    const titleField = document.getElementById("outputTitle");
+    const focusTitle = titleField.value.trim() || "未命名口說對練主題";
+    
+    const zoneOverlay = document.getElementById("zoneOverlay");
+    zoneOverlay.classList.add("output-mode");
+    document.getElementById("zoneBadgeType").innerText = "口說輸出中";
+    document.getElementById("zoneFocusTitle").innerText = focusTitle;
+    
     updateOutputTimerDisplay();
+    
+    zoneOverlay.classList.add("show");
+    document.getElementById("zoneFloatingBadge").style.display = "none";
+    
     startBtn.innerHTML = `<i class="fas fa-stop"></i> 結束沉浸`;
     startBtn.classList.add("active");
     
     document.getElementById("outputTimerAlert").style.display = "none";
 
     outputTimerInterval = setInterval(() => {
-      outputTimerSeconds++;
+      if (outputTimerStartTime) {
+        outputTimerSeconds = Math.floor((Date.now() - outputTimerStartTime) / 1000);
+      }
       updateOutputTimerDisplay();
     }, 1000);
   } else {
     // Stop Timer
     clearInterval(outputTimerInterval);
     outputTimerInterval = null;
+    
+    // Hide overlay & badge
+    document.getElementById("zoneOverlay").classList.remove("show");
+    document.getElementById("zoneFloatingBadge").style.display = "none";
+    activeTimerType = null;
     
     const mins = Math.max(1, Math.round(outputTimerSeconds / 60));
     
@@ -1053,7 +1199,10 @@ function handleOutputTimerAction() {
 function updateOutputTimerDisplay() {
   const mins = Math.floor(outputTimerSeconds / 60).toString().padStart(2, '0');
   const secs = (outputTimerSeconds % 60).toString().padStart(2, '0');
-  document.getElementById("outputTimerDisplay").innerText = `${mins}:${secs}`;
+  const timeStr = `${mins}:${secs}`;
+  document.getElementById("outputTimerDisplay").innerText = timeStr;
+  document.getElementById("zoneTimerDisplay").innerText = timeStr;
+  document.getElementById("floatingBadgeTimer").innerText = timeStr;
 }
 
 function resetOutputTimer() {
@@ -1062,6 +1211,7 @@ function resetOutputTimer() {
     outputTimerInterval = null;
   }
   outputTimerSeconds = 0;
+  outputTimerStartTime = null;
   updateOutputTimerDisplay();
   const startBtn = document.getElementById("startOutputTimerBtn");
   startBtn.innerHTML = `<i class="fas fa-play"></i> 開始沉浸`;
@@ -1073,4 +1223,121 @@ function showOutputManualUI() {
   document.getElementById("outputTimerBox").style.display = "none";
   document.getElementById("toggleOutputTimerBtn").innerHTML = `<i class="fas fa-stopwatch"></i> 啟動計時器`;
   document.getElementById("outputDuration").setAttribute("required", "required");
+}
+
+/* ==========================================================================
+   5. Interactive Heatmap Tooltip & History Modal
+   ========================================================================== */
+
+function showTooltip(e, text) {
+  const tooltip = document.getElementById("heatmapTooltip");
+  tooltip.innerHTML = text;
+  tooltip.style.display = "block";
+  moveTooltip(e);
+}
+
+function moveTooltip(e) {
+  const tooltip = document.getElementById("heatmapTooltip");
+  tooltip.style.left = (e.pageX + 10) + "px";
+  tooltip.style.top = (e.pageY - 40) + "px";
+}
+
+function hideTooltip() {
+  const tooltip = document.getElementById("heatmapTooltip");
+  tooltip.style.display = "none";
+}
+
+function openHistoryModal(dateStr) {
+  const modal = document.getElementById("dayHistoryModal");
+  document.getElementById("historyModalDate").innerText = dateStr;
+  
+  // Find data for this specific day
+  const dayLogs = logs.filter(l => l.date === dateStr);
+  const dayVocabs = vocab.filter(v => v.date === dateStr);
+  const dayCps = checkpoints.filter(c => c.date === dateStr);
+  
+  let html = "";
+  
+  if (dayLogs.length === 0 && dayVocabs.length === 0 && dayCps.length === 0) {
+    html = `<div class="text-muted" style="text-align:center; padding: 20px;">當天無任何學習或里程碑紀錄。</div>`;
+  } else {
+    // Render Logs
+    if (dayLogs.length > 0) {
+      html += `<h5 style="margin-top:0; margin-bottom:10px; font-weight:600; color:var(--accent-cyan); border-color:var(--accent-cyan);"><i class="fas fa-book-open"></i> 學習紀錄</h5>`;
+      html += `<div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">`;
+      dayLogs.forEach(log => {
+        const isInput = log.type === "input";
+        const icon = isInput ? `<i class="fas fa-sign-in-alt text-cyan"></i>` : `<i class="fas fa-sign-out-alt text-emerald"></i>`;
+        const typeLabel = isInput ? `輸入 (${log.source})` : `輸出 (${log.outputType})`;
+        const passiveLabel = isInput && log.passive ? ` <span class="badge" style="background:#edf2f7; color:#4a5568; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">被動聽讀</span>` : "";
+        
+        let detailHtml = "";
+        if (!isInput && log.rating) {
+          detailHtml += `<span style="color:#eab308; margin-left:10px;">${"★".repeat(log.rating)}${"☆".repeat(5-log.rating)}</span>`;
+        }
+        
+        html += `
+          <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:10px; font-size:13px; color:var(--text-primary);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <strong>${icon} ${typeLabel}${passiveLabel}</strong>
+              <span class="text-muted" style="font-size:11px;">${log.duration} 分鐘</span>
+            </div>
+            <div style="color:var(--text-secondary);">${log.title}${detailHtml}</div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+    
+    // Render Vocab
+    if (dayVocabs.length > 0) {
+      html += `<h5 style="margin-bottom:10px; font-weight:600; color:var(--accent-emerald); border-color:var(--accent-emerald);"><i class="fas fa-brain"></i> 新增生字</h5>`;
+      html += `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px;">`;
+      dayVocabs.forEach(v => {
+        html += `
+          <div style="background:var(--accent-emerald-glow); border:1px solid rgba(44,62,80,0.15); border-radius:20px; padding:4px 12px; font-size:12px; display:inline-flex; align-items:center; gap:6px; color:var(--text-primary);">
+            <strong>${v.word}</strong>: <span style="font-size:11px; color:var(--text-secondary);">${v.definition || '未填寫定義'}</span>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+    
+    // Render Checkpoints
+    if (dayCps.length > 0) {
+      html += `<h5 style="margin-bottom:10px; font-weight:600; color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fas fa-flag"></i> 里程碑紀錄</h5>`;
+      html += `<div style="display:flex; flex-direction:column; gap:10px;">`;
+      dayCps.forEach(cp => {
+        html += `
+          <div style="background:#eff6ff; border:1px solid rgba(59,130,246,0.15); border-radius:8px; padding:10px; font-size:13px; color:var(--text-primary);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <strong><i class="fas fa-trophy text-orange"></i> 測驗/自評成績: ${cp.score} 分</strong>
+              <span class="text-muted" style="font-size:11px;">累計 ${cp.hours} 小時</span>
+            </div>
+            <div style="color:var(--text-secondary); font-style:italic;">"${cp.notes || '無備註'}"</div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+  }
+  
+  document.getElementById("historyModalContent").innerHTML = html;
+  modal.classList.add("show");
+}
+
+function closeHistoryModal() {
+  document.getElementById("dayHistoryModal").classList.remove("show");
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === "visible") {
+    if (activeTimerType === "input" && inputTimerStartTime) {
+      inputTimerSeconds = Math.floor((Date.now() - inputTimerStartTime) / 1000);
+      updateInputTimerDisplay();
+    } else if (activeTimerType === "output" && outputTimerStartTime) {
+      outputTimerSeconds = Math.floor((Date.now() - outputTimerStartTime) / 1000);
+      updateOutputTimerDisplay();
+    }
+  }
 }

@@ -10,3 +10,6 @@ English Learning Plan/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Ignore local credentials config file for Option A
+english-learning/config.json
