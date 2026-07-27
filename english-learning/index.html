@@ -14,6 +14,31 @@
 <body>
     <div class="glow-bg"></div>
     
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card glass">
+            <div class="login-header">
+                <i class="fas fa-lock text-cyan" style="font-size: 2.5rem; margin-bottom: 15px;"></i>
+                <h2>安全登入</h2>
+                <p>請輸入帳號與密碼以存取您的私密紀錄</p>
+            </div>
+            <form id="loginForm" class="login-form mt-4">
+                <div class="input-group mb-3">
+                    <label class="form-label" for="loginUsername">帳號</label>
+                    <input type="text" id="loginUsername" class="form-control-custom" required placeholder="APP_USERNAME">
+                </div>
+                <div class="input-group mb-4">
+                    <label class="form-label" for="loginPassword">密碼</label>
+                    <input type="password" id="loginPassword" class="form-control-custom" required placeholder="APP_PASSWORD">
+                </div>
+                <button type="submit" class="btn-primary-custom w-100" id="loginSubmitBtn" style="font-size: 16px; padding: 12px;">
+                    <i class="fas fa-sign-in-alt"></i> 登入系統
+                </button>
+                <div id="loginErrorMsg" class="login-error text-orange mt-3" style="display:none; text-align:center; font-size:14px;"><i class="fas fa-exclamation-triangle"></i> <span></span></div>
+            </form>
+        </div>
+    </div>
+    
     <!-- Top Navigation -->
     <header class="app-header">
         <div class="header-container">
@@ -21,7 +46,10 @@
                 <i class="fas fa-language text-cyan"></i>
                 <h1>英文沉浸式學習紀錄器 <span>Immersive Tracker</span></h1>
             </div>
-            <a href="../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> 返回個人主頁</a>
+            <div class="header-actions" style="display: flex; align-items: center; gap: 15px;">
+                <button id="logoutBtn" class="btn-secondary-custom" style="display: none; padding: 6px 12px; font-size: 13px;"><i class="fas fa-sign-out-alt"></i> 登出</button>
+                <a href="../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> 返回個人主頁</a>
+            </div>
         </div>
     </header>
 

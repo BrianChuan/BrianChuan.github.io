@@ -1218,3 +1218,84 @@ body {
   margin-right: 4px;
 }
 
+/* ==========================================================================
+   Login Overlay UI
+   ========================================================================== */
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.login-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  text-align: center;
+  transform: translateY(0);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.login-overlay.hidden .login-card {
+  transform: translateY(-20px) scale(0.95);
+}
+
+.login-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 8px;
+}
+
+.login-header p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 25px;
+}
+
+.login-form .input-group {
+  text-align: left;
+}
+
+.login-form .form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+}
+
+.login-form .form-control-custom {
+  width: 100%;
+  padding: 12px 15px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  transition: var(--transition);
+}
+
+.login-form .form-control-custom:focus {
+  outline: none;
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}

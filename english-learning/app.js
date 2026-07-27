@@ -6,6 +6,7 @@
 const LOGS_KEY = "brian_english_logs";
 const VOCAB_KEY = "brian_english_vocab";
 const CHECKPOINTS_KEY = "brian_english_checkpoints";
+const SESSION_KEY = "brian_session_token";
 const SETTINGS_KEY = "brian_english_settings";
 
 // Gemini Live System Instruction Prompt
@@ -50,10 +51,72 @@ let activeTimerType = null; // 'input' or 'output' or null
 
 // Initialize App
 document.addEventListener("DOMContentLoaded", () => {
+  const token = localStorage.getItem(SESSION_KEY);
+  if (token) {
+    // 已登入
+    document.getElementById("loginOverlay").classList.add("hidden");
+    document.getElementById("logoutBtn").style.display = "block";
+    initApp();
+  } else {
+    // 未登入
+    setupLoginListeners();
+  }
+});
+
+function initApp() {
   loadData();
   setupEventListeners();
   renderAll();
-});
+  
+  // 啟動自動同步
+  syncWithGoogleSheets();
+}
+
+function setupLoginListeners() {
+  const form = document.getElementById("loginForm");
+  const errorMsg = document.getElementById("loginErrorMsg");
+  const submitBtn = document.getElementById("loginSubmitBtn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorMsg.style.display = "none";
+    
+    const u = document.getElementById("loginUsername").value.trim();
+    const p = document.getElementById("loginPassword").value.trim();
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 驗證中...`;
+
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.status === "success") {
+        // 驗證成功，儲存無狀態 Token
+        localStorage.setItem(SESSION_KEY, data.token);
+        
+        // 隱藏登入畫面並啟動系統
+        document.getElementById("loginOverlay").classList.add("hidden");
+        document.getElementById("logoutBtn").style.display = "block";
+        initApp();
+      } else {
+        errorMsg.querySelector("span").innerText = data.message || "登入失敗";
+        errorMsg.style.display = "block";
+      }
+    } catch (err) {
+      errorMsg.querySelector("span").innerText = "伺服器無回應，請確認 Cloudflare 狀態";
+      errorMsg.style.display = "block";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<i class="fas fa-sign-in-alt"></i> 登入系統`;
+    }
+  });
+}
 
 // Load Data from LocalStorage
 function loadData() {
@@ -103,6 +166,12 @@ function setupEventListeners() {
 
   // Sync settings
   document.getElementById("syncNowBtn").addEventListener("click", syncWithGoogleSheets);
+
+  // Logout
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem(SESSION_KEY);
+    location.reload();
+  });
 
   // Checkpoint Modal
   document.getElementById("addCheckpointBtn").addEventListener("click", openCheckpointModal);
@@ -785,6 +854,7 @@ function clearAllLogs() {
    ========================================================================== */
 async function syncWithGoogleSheets() {
   const url = "/api/sync";
+  const token = localStorage.getItem(SESSION_KEY);
 
   const syncStatus = document.getElementById("syncStatusText");
   const syncBtn = document.getElementById("syncNowBtn");
@@ -806,10 +876,19 @@ async function syncWithGoogleSheets() {
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Sync-Token": token || ""
       },
       body: JSON.stringify(payload)
     });
+    
+    if (res.status === 401) {
+      alert("授權已過期或密碼錯誤，請重新登入！");
+      localStorage.removeItem(SESSION_KEY);
+      location.reload();
+      return;
+    }
+    
     if (!res.ok) throw new Error(`HTTP ${res.status} 錯誤。伺服器或代理端回傳異常。`);
     
     const responseJson = await res.json();

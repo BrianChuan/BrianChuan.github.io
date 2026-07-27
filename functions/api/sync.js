@@ -7,10 +7,36 @@ export async function onRequestPost(context) {
   const { request, env } = context;
 
   try {
-    // 1. 讀取前端傳送的 payload
+    // 1. 讀取與驗證前端傳送的授權 Token
+    const clientToken = request.headers.get("X-Sync-Token");
+    const validUsername = env.APP_USERNAME;
+    const validPassword = env.APP_PASSWORD;
+
+    if (!validUsername || !validPassword) {
+      return new Response(JSON.stringify({
+        status: "error",
+        message: "請先至 Cloudflare 設定 APP_USERNAME 與 APP_PASSWORD 環境變數"
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const expectedToken = btoa(`${validUsername}:${validPassword}`);
+    if (!clientToken || clientToken !== expectedToken) {
+       return new Response(JSON.stringify({
+         status: "error",
+         message: "未授權的存取，請先登入 (Unauthorized)"
+       }), {
+         status: 401,
+         headers: { "Content-Type": "application/json" },
+       });
+    }
+
+    // 2. 讀取前端傳送的 payload
     const bodyText = await request.text();
 
-    // 2. 讀取儲存在 Cloudflare Pages 的 Google Apps Script 網址 (Environment Variable)
+    // 3. 讀取儲存在 Cloudflare Pages 的 Google Apps Script 網址 (Environment Variable)
     const googleScriptUrl = env.GOOGLE_SCRIPT_URL; 
     
     if (!googleScriptUrl) {
