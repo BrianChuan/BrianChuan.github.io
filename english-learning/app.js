@@ -496,10 +496,8 @@ function submitInputLog() {
   const alertEl = document.getElementById("inputTimerAlert");
   if (alertEl) alertEl.style.display = "none";
   
-  // Auto-sync if configured
-  if (settings.googleAppUrl) {
-    syncWithGoogleSheets();
-  }
+  // Auto-sync
+  syncWithGoogleSheets();
 }
 
 function handleOutputLog(e) {
@@ -548,10 +546,8 @@ function submitOutputLog() {
   const alertEl = document.getElementById("outputTimerAlert");
   if (alertEl) alertEl.style.display = "none";
 
-  // Auto-sync if configured
-  if (settings.googleAppUrl) {
-    syncWithGoogleSheets();
-  }
+  // Auto-sync
+  syncWithGoogleSheets();
 }
 
 window.deleteLog = function(id) {
@@ -715,10 +711,8 @@ function handleCheckpointAdd(e) {
   closeCheckpointModal();
   document.getElementById("checkpointForm").reset();
 
-  // Sync settings
-  if (settings.googleAppUrl) {
-    syncWithGoogleSheets();
-  }
+  // Auto-sync
+  syncWithGoogleSheets();
 }
 
 window.deleteCheckpoint = function(id) {
