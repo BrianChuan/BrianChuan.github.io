@@ -36,8 +36,8 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: "Cloudflare 後台尚未設定 GEMINI_API_KEY 環境變數" }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
 
-    // 4. 呼叫 Gemini 1.5 Flash API
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+    // 4. 呼叫 Gemini 3.5 Flash API
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
     
     const prompt = `你是一個專業的英文學習助手。請從以下使用者輸入的英文學習紀錄或筆記中，萃取出 3 到 5 個最值得學習的高頻單字或片語。
 請以嚴格的 JSON 陣列格式回傳，請不要包含任何 Markdown 標記或 \`\`\`json 等字眼，直接回傳乾淨的 JSON 陣列即可。

@@ -332,25 +332,10 @@ function renderHeatmap() {
   if (!grid) return;
   grid.innerHTML = "";
 
-  // Dynamically calculate start date based on earliest log
+  // Always render exactly the last 181 days (~6 months, 26 weeks)
   const endDate = new Date();
   let startDate = new Date();
-  
-  if (logs && logs.length > 0) {
-    let validLogs = logs.filter(l => l && l.date && !isNaN(new Date(l.date).getTime()));
-    if (validLogs.length > 0) {
-      const earliestDate = validLogs.reduce((earliest, log) => {
-        const logDate = new Date(log.date);
-        return logDate < earliest ? logDate : earliest;
-      }, new Date(validLogs[0].date));
-      startDate = new Date(earliestDate);
-    } else {
-      startDate.setDate(endDate.getDate() - 28);
-    }
-  } else {
-    // Default 28 days if no logs
-    startDate.setDate(endDate.getDate() - 28);
-  }
+  startDate.setDate(endDate.getDate() - 181);
 
   // Calculate day-of-week offset for row align
   const startDay = isNaN(startDate.getDay()) ? 0 : startDate.getDay(); // 0 is Sunday, 1 is Monday...
