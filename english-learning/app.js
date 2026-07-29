@@ -53,23 +53,57 @@ let activeTimerType = null; // 'input' or 'output' or null
 document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem(SESSION_KEY);
   if (token) {
-    // 已登入
+    // 已登入 (不自動同步)
     document.getElementById("loginOverlay").classList.add("hidden");
     document.getElementById("logoutBtn").style.display = "block";
-    initApp();
+    initApp(false);
   } else {
     // 未登入
     setupLoginListeners();
   }
 });
 
-function initApp() {
+function initApp(isFirstLogin = false) {
   loadData();
   setupEventListeners();
   renderAll();
   
-  // 啟動自動同步
-  syncWithGoogleSheets();
+  // 首次登入時才執行自動同步，後續依賴行為驅動
+  if (isFirstLogin) {
+    syncWithGoogleSheets();
+  }
+}
+
+/* ==========================================================================
+   Toast Notification System
+   ========================================================================== */
+function showToast(message, type = "success") {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  
+  let iconClass = "fas fa-info-circle";
+  if (type === "success") iconClass = "fas fa-check-circle";
+  if (type === "error") iconClass = "fas fa-exclamation-circle";
+
+  toast.innerHTML = `
+    <i class="${iconClass} toast-icon"></i>
+    <div class="toast-content">${message}</div>
+    <button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+  `;
+
+  container.appendChild(toast);
+
+  // Trigger animation
+  setTimeout(() => toast.classList.add("show"), 10);
+
+  // Auto remove after 3s
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 function setupLoginListeners() {
@@ -100,10 +134,10 @@ function setupLoginListeners() {
         // 驗證成功，儲存無狀態 Token
         localStorage.setItem(SESSION_KEY, data.token);
         
-        // 隱藏登入畫面並啟動系統
+        // 隱藏登入畫面並啟動系統 (傳入 true 觸發首次同步)
         document.getElementById("loginOverlay").classList.add("hidden");
         document.getElementById("logoutBtn").style.display = "block";
-        initApp();
+        initApp(true);
       } else {
         errorMsg.querySelector("span").innerText = data.message || "登入失敗";
         errorMsg.style.display = "block";
@@ -221,9 +255,15 @@ function renderAll() {
 
 // Render Header Statistics
 function renderStats() {
-  // 1. Total Hours
+  // 1. Total Hours (Apply 0.33x multiplier for passive fatigue backup)
   let totalMinutes = 0;
-  logs.forEach(l => totalMinutes += Number(l.duration));
+  logs.forEach(l => {
+    if (l.passive) {
+      totalMinutes += Number(l.duration) * 0.33;
+    } else {
+      totalMinutes += Number(l.duration);
+    }
+  });
   const totalHrs = (totalMinutes / 60).toFixed(1);
   document.getElementById("totalHours").innerText = totalHrs;
 
@@ -294,17 +334,25 @@ function renderHeatmap() {
   if (!grid) return;
   grid.innerHTML = "";
 
-  // We want to render cells representing the past 365 days ending today
-  // Let's find the start date (364 days ago)
+  // Dynamically calculate start date based on earliest log
   const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(endDate.getDate() - 364);
+  let startDate = new Date();
+  
+  if (logs.length > 0) {
+    const earliestDate = logs.reduce((earliest, log) => {
+      const logDate = new Date(log.date);
+      return logDate < earliest ? logDate : earliest;
+    }, new Date(logs[0].date));
+    startDate = new Date(earliestDate);
+  } else {
+    // Default 28 days if no logs
+    startDate.setDate(endDate.getDate() - 28);
+  }
 
   // Calculate day-of-week offset for row align
   const startDay = startDate.getDay(); // 0 is Sunday, 1 is Monday...
   
   // Add empty placeholders for grid alignment so columns represent weeks (Sun-Sat)
-  // We want rows 0-6 represent Sunday to Saturday
   for (let i = 0; i < startDay; i++) {
     const placeholder = document.createElement("div");
     placeholder.className = "heatmap-cell level-0";
@@ -313,7 +361,6 @@ function renderHeatmap() {
   }
 
   // Map logs by date for efficient lookup
-  // Format: { "YYYY-MM-DD": { input: mins, output: mins, passive: mins } }
   const dateMap = {};
   logs.forEach(log => {
     if (!dateMap[log.date]) {
@@ -330,9 +377,13 @@ function renderHeatmap() {
     }
   });
 
-  // Render 365 cells
+  // Calculate total days to render
+  const timeDiff = endDate.getTime() - startDate.getTime();
+  const totalDays = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
+
+  // Render cells from startDate to endDate
   const tempDate = new Date(startDate);
-  for (let d = 0; d <= 364; d++) {
+  for (let d = 0; d <= totalDays; d++) {
     const dateStr = getLocalDateString(tempDate);
     const dayLog = dateMap[dateStr] || { input: 0, output: 0, passive: 0 };
 
@@ -624,6 +675,8 @@ window.deleteLog = function(id) {
   logs = logs.filter(l => l.id !== id);
   saveData();
   renderAll();
+  // Auto-sync on delete
+  syncWithGoogleSheets();
 };
 
 window.deleteVocab = function(index) {
@@ -789,6 +842,8 @@ window.deleteCheckpoint = function(id) {
   checkpoints = checkpoints.filter(c => c.id !== id);
   saveData();
   renderAll();
+  // Auto-sync on delete
+  syncWithGoogleSheets();
 };
 
 /* ==========================================================================
@@ -858,11 +913,13 @@ async function syncWithGoogleSheets() {
 
   const syncStatus = document.getElementById("syncStatusText");
   const syncBtn = document.getElementById("syncNowBtn");
-  const originalBtnHtml = syncBtn.innerHTML;
+  const originalBtnHtml = syncBtn ? syncBtn.innerHTML : "";
 
   try {
-    syncBtn.disabled = true;
-    syncBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 同步中...`;
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 同步中...`;
+    }
     syncStatus.innerText = "正在透過 Cloudflare Pages 代理同步資料...";
 
     // Package the full database state to push
@@ -1345,3 +1402,113 @@ function handleVisibilityChange() {
     }
   }
 }
+
+/* ==========================================================================
+   AI Vocab Extraction & Review Modal
+   ========================================================================== */
+let pendingAiVocabList = [];
+
+document.getElementById("aiExtractVocabBtn").addEventListener("click", async () => {
+  const textInput = document.getElementById("aiVocabInputText");
+  const text = textInput.value.trim();
+  const btn = document.getElementById("aiExtractVocabBtn");
+
+  if (!text) {
+    showToast("請先貼上英文文章、對話或字幕！", "error");
+    return;
+  }
+
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> AI 萃取中...`;
+
+  try {
+    const token = localStorage.getItem(SESSION_KEY);
+    const res = await fetch("/api/extract-vocab", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Sync-Token": token || ""
+      },
+      body: JSON.stringify({ text })
+    });
+
+    if (res.status === 401) {
+      showToast("登入已過期，請重新登入", "error");
+      localStorage.removeItem(SESSION_KEY);
+      setTimeout(() => location.reload(), 1500);
+      return;
+    }
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "未知錯誤");
+    }
+
+    const data = await res.json();
+    if (data.status === "success" && data.vocab && data.vocab.length > 0) {
+      pendingAiVocabList = data.vocab;
+      renderVocabReviewModal(pendingAiVocabList);
+      document.getElementById("vocabReviewModal").classList.remove("hidden");
+    } else {
+      showToast("AI 無法萃取出任何單字，請嘗試提供更多上下文。", "info");
+    }
+  } catch (err) {
+    showToast("AI 萃取失敗：" + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+});
+
+function renderVocabReviewModal(vocabItems) {
+  const listContainer = document.getElementById("vocabReviewList");
+  listContainer.innerHTML = "";
+
+  vocabItems.forEach((item, index) => {
+    const defaultDef = `${item.pos || ''} ${item.chinese || ''}`.trim();
+    
+    const div = document.createElement("div");
+    div.className = "vocab-review-item";
+    div.innerHTML = `
+      <input type="checkbox" id="review_check_${index}" checked>
+      <label for="review_check_${index}" style="min-width: 100px; font-weight: bold; margin-bottom: 0; color:#fff;">${item.word}</label>
+      <input type="text" id="review_def_${index}" value="${defaultDef}">
+    `;
+    listContainer.appendChild(div);
+  });
+}
+
+document.getElementById("confirmVocabBtn").addEventListener("click", () => {
+  let addedCount = 0;
+  pendingAiVocabList.forEach((item, index) => {
+    const checkbox = document.getElementById(`review_check_${index}`);
+    if (checkbox && checkbox.checked) {
+      const word = item.word;
+      const def = document.getElementById(`review_def_${index}`).value.trim();
+      
+      const newVocab = {
+        id: "v-" + Date.now() + Math.floor(Math.random() * 1000),
+        date: getLocalDateString(new Date()),
+        word: word,
+        definition: def
+      };
+      vocab.push(newVocab);
+      addedCount++;
+    }
+  });
+
+  if (addedCount > 0) {
+    saveData();
+    renderAll();
+    syncWithGoogleSheets();
+    showToast(`成功新增 ${addedCount} 個 AI 單字！`, "success");
+    document.getElementById("aiVocabInputText").value = "";
+  }
+  
+  closeVocabReviewModal();
+});
+
+window.closeVocabReviewModal = function() {
+  document.getElementById("vocabReviewModal").classList.add("hidden");
+};

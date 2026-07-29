@@ -23,8 +23,34 @@ export async function onRequestPost(context) {
       });
     }
 
+    // 抓取資安資訊
+    const ip = request.headers.get("cf-connecting-ip") || "Unknown IP";
+    const userAgent = request.headers.get("user-agent") || "Unknown Device";
+    const googleScriptUrl = env.GOOGLE_SCRIPT_URL;
+
+    // 非同步發送登入紀錄的輔助函式
+    const sendLoginLog = async (statusMsg) => {
+      if (!googleScriptUrl) return;
+      try {
+        await fetch(googleScriptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            action: "login_log",
+            timestamp: new Date().toISOString(),
+            ip: ip,
+            userAgent: userAgent,
+            status: statusMsg
+          })
+        });
+      } catch(e) {
+        // 忽略寫入失敗，不影響登入主流程
+      }
+    };
+
     if (username === validUsername && password === validPassword) {
-      // 驗證成功，產生一組無狀態的驗證 Token
+      // 驗證成功
+      context.waitUntil(sendLoginLog("登入成功 (Success)"));
       const token = btoa(`${username}:${password}`);
       return new Response(JSON.stringify({ 
         status: "success", 
@@ -34,6 +60,8 @@ export async function onRequestPost(context) {
         headers: { "Content-Type": "application/json" }
       });
     } else {
+      // 驗證失敗
+      context.waitUntil(sendLoginLog("登入失敗 (Failed) - " + username));
       return new Response(JSON.stringify({ 
         status: "error", 
         message: "帳號或密碼錯誤" 

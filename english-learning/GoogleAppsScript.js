@@ -22,6 +22,26 @@ function doPost(e) {
     var jsonString = e.postData.contents;
     var data = JSON.parse(jsonString);
     
+    if (data.action === "login_log") {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var sheetName = "登入紀錄 (Login_Logs)";
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) {
+        sheet = ss.insertSheet(sheetName);
+        sheet.appendRow(["時間", "IP 位址", "裝置與瀏覽器 (User-Agent)", "狀態"]);
+        sheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#f3f4f6");
+        sheet.setColumnWidth(1, 180);
+        sheet.setColumnWidth(2, 150);
+        sheet.setColumnWidth(3, 500);
+      }
+      sheet.appendRow([data.timestamp, data.ip, data.userAgent, data.status]);
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Login logged"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
     if (data.action !== "sync") {
       return ContentService.createTextOutput(JSON.stringify({
         status: "error",

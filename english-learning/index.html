@@ -132,6 +132,7 @@
                                     <label class="form-label">輸入來源</label>
                                     <select id="inputSource" class="form-control-custom" required>
                                         <option value="YouTube">YouTube 影片</option>
+                                        <option value="Netflix">Netflix</option>
                                         <option value="Podcast">Podcast 音訊</option>
                                         <option value="Article">商業/科技文章</option>
                                         <option value="Other">其他素材</option>
@@ -231,32 +232,21 @@
 
             <!-- Right Side: Gemini Assistant & Anki Exporter -->
             <div class="layout-side-column">
-                <!-- Gemini Live Companion Panel -->
-                <div class="tool-card glass mb-4">
-                    <h3><i class="fab fa-google text-cyan"></i> Gemini Live 語音對練伴侶</h3>
-                    <p class="tool-intro">搭配 Gemini Live (語音模式) 或 Gemini Gems 進行每日輸出對練：</p>
-                    
-                    <div class="prompt-copy-box">
-                        <div class="prompt-title">語音角色設定提示詞 (System Instruction)</div>
-                        <button class="btn-copy-prompt" id="copyPromptBtn"><i class="far fa-copy"></i> 複製指令</button>
-                    </div>
 
-                    <div class="feedback-parser-box">
-                        <div class="prompt-title">匯入 Gemini 結尾反饋與建議</div>
-                        <p class="tool-intro" style="font-size:12px; margin-top:2px;">對話結束後，複製 Gemini 提供的建議清單貼在下方，系統會自動解析並將生詞/例句儲存至單字本：</p>
-                        <textarea id="geminiFeedbackInput" class="form-control-custom" rows="4" placeholder="在此貼上 Gemini 對話結尾的回饋建議..."></textarea>
-                        <button class="btn-secondary-custom w-100 mt-2" id="parseFeedbackBtn"><i class="fas fa-magic"></i> 解析並儲存生字</button>
-                    </div>
-                </div>
 
                 <!-- Anki Vocabulary Box -->
                 <div class="tool-card glass mb-4">
                     <div class="header-with-action">
                         <h3><i class="fas fa-brain text-emerald"></i> Anki 待複習字卡 (<span id="vocabCount">0</span>)</h3>
-                        <button class="btn-text-only text-emerald" id="exportAnkiBtn"><i class="fas fa-file-export"></i> 匯出 CSV</button>
+                        <button type="button" class="btn-text-only text-emerald" id="exportAnkiBtn"><i class="fas fa-file-export"></i> 匯出 CSV</button>
                     </div>
                     <p class="tool-intro">這裡記錄您在學習中記下的高頻生詞，可匯出直接導入 Anki 當中。</p>
                     
+                    <div style="margin-bottom: 15px;">
+                        <textarea id="aiVocabInputText" class="form-control-custom" rows="3" placeholder="貼上一段英文文章、對話或字幕，讓 AI 自動為您萃取重要單字..."></textarea>
+                        <button type="button" class="btn-secondary-custom w-100 mt-2" id="aiExtractVocabBtn"><i class="fas fa-magic"></i> ✨ AI 自動萃取單字</button>
+                    </div>
+
                     <div class="vocab-list-wrapper" id="vocabList">
                         <!-- Vocabulary chips generated dynamically -->
                     </div>
@@ -411,6 +401,26 @@
     <footer class="app-footer">
         <p>&copy; 2026 Brian Hsieh. Powered by GitHub Pages & Google Sheets.</p>
     </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Review Vocab Modal -->
+    <div id="vocabReviewModal" class="modal-overlay hidden">
+        <div class="modal-content glass" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 style="color:#06b6d4;"><i class="fas fa-magic"></i> AI 單字萃取確認</h3>
+                <button type="button" class="btn-text-only close-modal" onclick="closeVocabReviewModal()"><i class="fas fa-times text-slate-300"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <p class="tool-intro" style="font-size: 13px;">請確認以下由 Gemini 萃取的單字。您可以取消勾選不須記憶的字，或手動修改中文翻譯。</p>
+                <div id="vocabReviewList" class="vocab-review-list">
+                    <!-- Dynamic review items go here -->
+                </div>
+                <button type="button" class="btn-primary-custom w-100 mt-3" id="confirmVocabBtn"><i class="fas fa-check"></i> 確認並寫入生字庫</button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
