@@ -186,9 +186,7 @@ function setupEventListeners() {
   document.getElementById("outputLogForm").addEventListener("submit", handleOutputLog);
   document.getElementById("checkpointForm").addEventListener("submit", handleCheckpointAdd);
 
-  // Gemini Tools
-  document.getElementById("copyPromptBtn").addEventListener("click", copyGeminiPrompt);
-  document.getElementById("parseFeedbackBtn").addEventListener("click", parseGeminiFeedback);
+
 
   // Exporters & Backups
   document.getElementById("exportAnkiBtn").addEventListener("click", exportAnkiCSV);
@@ -690,78 +688,7 @@ window.deleteVocab = function(index) {
   renderAll();
 };
 
-/* ==========================================================================
-   Gemini Live Integration
-   ========================================================================== */
-function copyGeminiPrompt() {
-  const holder = document.getElementById("hiddenPromptHolder");
-  holder.value = GEMINI_SYSTEM_PROMPT;
-  holder.style.display = "block";
-  holder.select();
-  document.execCommand("copy");
-  holder.style.display = "none";
 
-  const copyBtn = document.getElementById("copyPromptBtn");
-  const originalText = copyBtn.innerHTML;
-  copyBtn.innerHTML = '<i class="fas fa-check"></i> 已複製';
-  copyBtn.style.background = "var(--accent-emerald)";
-  
-  setTimeout(() => {
-    copyBtn.innerHTML = originalText;
-    copyBtn.style.background = "";
-  }, 2000);
-}
-
-// Parse Vocabulary and Feedback text pasted from Gemini Live summary
-function parseGeminiFeedback() {
-  const input = document.getElementById("geminiFeedbackInput").value.trim();
-  if (!input) {
-    alert("請先貼入 Gemini 的總結回饋文字。");
-    return;
-  }
-
-  // Regex patterns to capture words.
-  // E.g., Matches lines like:
-  // - **Word**: Definition
-  // - Word: Definition
-  // * Word - Definition
-  // Word - Definition
-  const lines = input.split("\n");
-  let parsedCount = 0;
-  const dateStr = getLocalDateString(new Date());
-
-  lines.forEach(line => {
-    // Regex matches formats: "- **word**: definition" or "* word - definition" or "1. word: definition"
-    // Capture group 1 is word, group 2 is definition
-    const match = line.match(/^\s*[-*•\d\.]*\s*\*?\*?([a-zA-Z\s'-]+)\*?\*?\s*[:\-–—]\s*(.+)$/);
-    if (match) {
-      const word = match[1].trim();
-      const definition = match[2].trim();
-
-      // Check validation (words only, length check)
-      if (word.length > 1 && word.length < 40 && !vocab.some(v => v.word.toLowerCase() === word.toLowerCase())) {
-        vocab.push({
-          word: word,
-          definition: definition,
-          date: dateStr,
-          source: "Gemini Live Feedback",
-          synced: false
-        });
-        parsedCount++;
-      }
-    }
-  });
-
-  if (parsedCount > 0) {
-    saveData();
-    renderAll();
-    alert(`成功解析並新增 ${parsedCount} 個生字至生字庫！`);
-    document.getElementById("geminiFeedbackInput").value = "";
-  } else {
-    // Fallback: search for potential bracket words like "word (definition)"
-    alert("未能解析出符合規範的格式。建議將 Gemini 提供的「單字 - 定義」逐行列表貼入。");
-  }
-}
 
 /* ==========================================================================
    Anki CSV Exporter
