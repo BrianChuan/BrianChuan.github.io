@@ -149,6 +149,7 @@
                                     </div>
                                     <div id="inputTimerBox" style="display: none; align-items: center; gap: 10px;">
                                         <div class="timer-display" id="inputTimerDisplay">00:00</div>
+                                        <button type="button" class="btn-timer-action" id="pauseInputTimerBtn" style="display: none; background: #f59e0b; border-color: #f59e0b; color: #fff;"><i class="fas fa-pause"></i> 暫停</button>
                                         <button type="button" class="btn-timer-action" id="startInputTimerBtn"><i class="fas fa-play"></i> 開始沉浸</button>
                                     </div>
                                 </div>
@@ -202,6 +203,7 @@
                                     </div>
                                     <div id="outputTimerBox" style="display: none; align-items: center; gap: 10px;">
                                         <div class="timer-display" id="outputTimerDisplay">00:00</div>
+                                        <button type="button" class="btn-timer-action emerald" id="pauseOutputTimerBtn" style="display: none; background: #f59e0b; border-color: #f59e0b; color: #fff;"><i class="fas fa-pause"></i> 暫停</button>
                                         <button type="button" class="btn-timer-action emerald" id="startOutputTimerBtn"><i class="fas fa-play"></i> 開始沉浸</button>
                                     </div>
                                 </div>
@@ -361,6 +363,7 @@
                 </div>
 
                 <div class="zone-actions">
+                    <button type="button" class="btn-zone-action stop" id="zonePauseBtn" style="background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.5);"><i class="fas fa-pause"></i> 暫停</button>
                     <button type="button" class="btn-zone-action stop" id="zoneStopBtn"><i class="fas fa-stop"></i> 結束並記錄</button>
                     <button type="button" class="btn-zone-action minimize" id="zoneMinimizeBtn"><i class="fas fa-compress-alt"></i> 縮小視窗</button>
                 </div>

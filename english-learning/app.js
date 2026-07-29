@@ -44,9 +44,11 @@ let checkpoints = [];
 let inputTimerInterval = null;
 let inputTimerSeconds = 0;
 let inputTimerStartTime = null;
+let inputTimerIsPaused = false;
 let outputTimerInterval = null;
 let outputTimerSeconds = 0;
 let outputTimerStartTime = null;
+let outputTimerIsPaused = false;
 let activeTimerType = null; // 'input' or 'output' or null
 
 // Initialize App
@@ -209,10 +211,13 @@ function setupEventListeners() {
   // Timer Actions
   document.getElementById("toggleInputTimerBtn").addEventListener("click", toggleInputTimerUI);
   document.getElementById("startInputTimerBtn").addEventListener("click", handleInputTimerAction);
+  document.getElementById("pauseInputTimerBtn").addEventListener("click", handlePauseTimerAction);
   document.getElementById("toggleOutputTimerBtn").addEventListener("click", toggleOutputTimerUI);
   document.getElementById("startOutputTimerBtn").addEventListener("click", handleOutputTimerAction);
+  document.getElementById("pauseOutputTimerBtn").addEventListener("click", handlePauseTimerAction);
 
   // Zone Mode Controls
+  document.getElementById("zonePauseBtn").addEventListener("click", handlePauseTimerAction);
   document.getElementById("zoneStopBtn").addEventListener("click", () => {
     if (activeTimerType === "input") {
       handleInputTimerAction();
@@ -945,7 +950,10 @@ function handleInputTimerAction() {
     // Start Timer
     inputTimerSeconds = 0;
     inputTimerStartTime = Date.now();
+    inputTimerIsPaused = false;
     activeTimerType = "input";
+    document.getElementById("pauseInputTimerBtn").style.display = "block";
+    document.getElementById("pauseInputTimerBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
     
     // Configure and show Zone Overlay
     const titleField = document.getElementById("inputTitle");
@@ -977,6 +985,7 @@ function handleInputTimerAction() {
     // Stop Timer
     clearInterval(inputTimerInterval);
     inputTimerInterval = null;
+    document.getElementById("pauseInputTimerBtn").style.display = "none";
     
     // Hide overlay & badge
     document.getElementById("zoneOverlay").classList.remove("show");
@@ -1038,6 +1047,8 @@ function resetInputTimer() {
   }
   inputTimerSeconds = 0;
   inputTimerStartTime = null;
+  inputTimerIsPaused = false;
+  document.getElementById("pauseInputTimerBtn").style.display = "none";
   updateInputTimerDisplay();
   const startBtn = document.getElementById("startInputTimerBtn");
   startBtn.innerHTML = `<i class="fas fa-play"></i> 開始沉浸`;
@@ -1084,7 +1095,10 @@ function handleOutputTimerAction() {
     // Start Timer
     outputTimerSeconds = 0;
     outputTimerStartTime = Date.now();
+    outputTimerIsPaused = false;
     activeTimerType = "output";
+    document.getElementById("pauseOutputTimerBtn").style.display = "block";
+    document.getElementById("pauseOutputTimerBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
     
     // Configure and show Zone Overlay
     const titleField = document.getElementById("outputTitle");
@@ -1115,6 +1129,7 @@ function handleOutputTimerAction() {
     // Stop Timer
     clearInterval(outputTimerInterval);
     outputTimerInterval = null;
+    document.getElementById("pauseOutputTimerBtn").style.display = "none";
     
     // Hide overlay & badge
     document.getElementById("zoneOverlay").classList.remove("show");
@@ -1156,6 +1171,52 @@ function handleOutputTimerAction() {
   }
 }
 
+function handlePauseTimerAction() {
+  if (activeTimerType === "input") {
+    if (inputTimerIsPaused) {
+      // Resume
+      inputTimerStartTime = Date.now() - (inputTimerSeconds * 1000);
+      inputTimerIsPaused = false;
+      inputTimerInterval = setInterval(() => {
+        inputTimerSeconds = Math.floor((Date.now() - inputTimerStartTime) / 1000);
+        updateInputTimerDisplay();
+      }, 1000);
+      
+      document.getElementById("pauseInputTimerBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
+      document.getElementById("zonePauseBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
+      document.getElementById("zoneBadgeType").innerText = "輸入沉浸中";
+    } else {
+      // Pause
+      clearInterval(inputTimerInterval);
+      inputTimerIsPaused = true;
+      document.getElementById("pauseInputTimerBtn").innerHTML = `<i class="fas fa-play"></i> 繼續`;
+      document.getElementById("zonePauseBtn").innerHTML = `<i class="fas fa-play"></i> 繼續`;
+      document.getElementById("zoneBadgeType").innerText = "暫停中";
+    }
+  } else if (activeTimerType === "output") {
+    if (outputTimerIsPaused) {
+      // Resume
+      outputTimerStartTime = Date.now() - (outputTimerSeconds * 1000);
+      outputTimerIsPaused = false;
+      outputTimerInterval = setInterval(() => {
+        outputTimerSeconds = Math.floor((Date.now() - outputTimerStartTime) / 1000);
+        updateOutputTimerDisplay();
+      }, 1000);
+      
+      document.getElementById("pauseOutputTimerBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
+      document.getElementById("zonePauseBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
+      document.getElementById("zoneBadgeType").innerText = "口說輸出中";
+    } else {
+      // Pause
+      clearInterval(outputTimerInterval);
+      outputTimerIsPaused = true;
+      document.getElementById("pauseOutputTimerBtn").innerHTML = `<i class="fas fa-play"></i> 繼續`;
+      document.getElementById("zonePauseBtn").innerHTML = `<i class="fas fa-play"></i> 繼續`;
+      document.getElementById("zoneBadgeType").innerText = "暫停中";
+    }
+  }
+}
+
 function updateOutputTimerDisplay() {
   const mins = Math.floor(outputTimerSeconds / 60).toString().padStart(2, '0');
   const secs = (outputTimerSeconds % 60).toString().padStart(2, '0');
@@ -1172,6 +1233,8 @@ function resetOutputTimer() {
   }
   outputTimerSeconds = 0;
   outputTimerStartTime = null;
+  outputTimerIsPaused = false;
+  document.getElementById("pauseOutputTimerBtn").style.display = "none";
   updateOutputTimerDisplay();
   const startBtn = document.getElementById("startOutputTimerBtn");
   startBtn.innerHTML = `<i class="fas fa-play"></i> 開始沉浸`;
@@ -1371,7 +1434,7 @@ function renderVocabReviewModal(vocabItems) {
     div.className = "vocab-review-item";
     div.innerHTML = `
       <input type="checkbox" id="review_check_${index}" checked>
-      <label for="review_check_${index}" style="min-width: 100px; font-weight: bold; margin-bottom: 0; color:#fff;">${item.word}</label>
+      <label for="review_check_${index}" style="min-width: 100px; font-weight: bold; margin-bottom: 0; color:var(--text-primary);">${item.word}</label>
       <input type="text" id="review_def_${index}" value="${defaultDef}">
     `;
     listContainer.appendChild(div);
