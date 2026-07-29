@@ -406,18 +406,20 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- Review Vocab Modal -->
-    <div id="vocabReviewModal" class="modal-overlay hidden">
-        <div class="modal-content glass" style="max-width: 500px;">
-            <div class="modal-header">
-                <h3 style="color:#06b6d4;"><i class="fas fa-magic"></i> AI 單字萃取確認</h3>
-                <button type="button" class="btn-text-only close-modal" onclick="closeVocabReviewModal()"><i class="fas fa-times text-slate-300"></i></button>
+    <div id="vocabReviewModal" class="custom-modal">
+        <div class="modal-content-wrapper" style="max-width: 500px;">
+            <div class="modal-content-header">
+                <h4 style="color:var(--accent-cyan); margin: 0;"><i class="fas fa-magic"></i> AI 單字萃取確認</h4>
+                <button class="modal-close-btn" onclick="closeVocabReviewModal()">&times;</button>
             </div>
-            <div class="modal-body" style="padding: 20px;">
-                <p class="tool-intro" style="font-size: 13px;">請確認以下由 Gemini 萃取的單字。您可以取消勾選不須記憶的字，或手動修改中文翻譯。</p>
+            <div class="modal-content-body" style="padding: 20px;">
+                <p class="text-muted" style="font-size: 13px; margin-bottom: 15px;">請確認以下由 Gemini 萃取的單字。您可以取消勾選不須記憶的字，或手動修改中文翻譯。</p>
                 <div id="vocabReviewList" class="vocab-review-list">
                     <!-- Dynamic review items go here -->
                 </div>
-                <button type="button" class="btn-primary-custom w-100 mt-3" id="confirmVocabBtn"><i class="fas fa-check"></i> 確認並寫入生字庫</button>
+            </div>
+            <div class="modal-content-footer">
+                <button type="button" class="btn-primary-custom w-100" id="confirmVocabBtn"><i class="fas fa-check"></i> 確認並寫入生字庫</button>
             </div>
         </div>
     </div>

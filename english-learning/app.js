@@ -338,19 +338,24 @@ function renderHeatmap() {
   const endDate = new Date();
   let startDate = new Date();
   
-  if (logs.length > 0) {
-    const earliestDate = logs.reduce((earliest, log) => {
-      const logDate = new Date(log.date);
-      return logDate < earliest ? logDate : earliest;
-    }, new Date(logs[0].date));
-    startDate = new Date(earliestDate);
+  if (logs && logs.length > 0) {
+    let validLogs = logs.filter(l => l && l.date && !isNaN(new Date(l.date).getTime()));
+    if (validLogs.length > 0) {
+      const earliestDate = validLogs.reduce((earliest, log) => {
+        const logDate = new Date(log.date);
+        return logDate < earliest ? logDate : earliest;
+      }, new Date(validLogs[0].date));
+      startDate = new Date(earliestDate);
+    } else {
+      startDate.setDate(endDate.getDate() - 28);
+    }
   } else {
     // Default 28 days if no logs
     startDate.setDate(endDate.getDate() - 28);
   }
 
   // Calculate day-of-week offset for row align
-  const startDay = startDate.getDay(); // 0 is Sunday, 1 is Monday...
+  const startDay = isNaN(startDate.getDay()) ? 0 : startDate.getDay(); // 0 is Sunday, 1 is Monday...
   
   // Add empty placeholders for grid alignment so columns represent weeks (Sun-Sat)
   for (let i = 0; i < startDay; i++) {
@@ -940,9 +945,9 @@ async function syncWithGoogleSheets() {
     });
     
     if (res.status === 401) {
-      alert("授權已過期或密碼錯誤，請重新登入！");
+      showToast("授權已過期或密碼錯誤，請重新登入！", "error");
       localStorage.removeItem(SESSION_KEY);
-      location.reload();
+      setTimeout(() => location.reload(), 1500);
       return;
     }
     
@@ -950,7 +955,7 @@ async function syncWithGoogleSheets() {
     
     const responseJson = await res.json();
     if (responseJson.status === "success") {
-      syncStatus.innerText = `同步成功！上次同步時間: ${new Date().toLocaleTimeString()}`;
+      syncStatus.innerHTML = `<i class="fas fa-check-circle text-emerald"></i> 同步成功！上次同步: ${new Date().toLocaleTimeString()}`;
       
       // Update local storage with merged lists
       if (responseJson.logs) {
@@ -969,17 +974,19 @@ async function syncWithGoogleSheets() {
       saveData();
       renderAll();
       
-      alert("同步成功！資料已與 Google 試算表完成雙向安全同步。");
+      showToast("同步成功！資料已與 Google 試算表完成雙向安全同步。", "success");
     } else {
       throw new Error(responseJson.message || "未知伺服器錯誤");
     }
   } catch (error) {
     console.error("Sync Error:", error);
-    syncStatus.innerText = "同步失敗，請確認 Worker 網址與金鑰配置。";
-    alert(`雲端同步失敗！\n錯誤原因：${error.message}\n\n請確認以下項目：\n1. Cloudflare Worker 已部署且環境變數配置正確。\n2. Worker 網址與安全金鑰正確無誤。\n3. 您是從允許的網域（如 GitHub Pages）進行存取。`);
+    syncStatus.innerHTML = `<i class="fas fa-exclamation-triangle text-orange"></i> 同步失敗`;
+    showToast(`雲端同步失敗！錯誤原因：${error.message}`, "error");
   } finally {
-    syncBtn.disabled = false;
-    syncBtn.innerHTML = originalBtnHtml;
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = originalBtnHtml;
+    }
   }
 }
 
@@ -1449,7 +1456,7 @@ document.getElementById("aiExtractVocabBtn").addEventListener("click", async () 
     if (data.status === "success" && data.vocab && data.vocab.length > 0) {
       pendingAiVocabList = data.vocab;
       renderVocabReviewModal(pendingAiVocabList);
-      document.getElementById("vocabReviewModal").classList.remove("hidden");
+      document.getElementById("vocabReviewModal").classList.add("show");
     } else {
       showToast("AI 無法萃取出任何單字，請嘗試提供更多上下文。", "info");
     }
@@ -1510,5 +1517,5 @@ document.getElementById("confirmVocabBtn").addEventListener("click", () => {
 });
 
 window.closeVocabReviewModal = function() {
-  document.getElementById("vocabReviewModal").classList.add("hidden");
+  document.getElementById("vocabReviewModal").classList.remove("show");
 };
