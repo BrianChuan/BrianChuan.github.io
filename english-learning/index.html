@@ -47,6 +47,7 @@
                 <h1>英文沉浸式學習紀錄器 <span>Immersive Tracker</span></h1>
             </div>
             <div class="header-actions" style="display: flex; align-items: center; gap: 15px;">
+                <button id="syncNowBtn" class="btn-secondary-custom" style="padding: 6px 12px; font-size: 13px;"><i class="fas fa-cloud-upload-alt"></i> 同步</button>
                 <button id="logoutBtn" class="btn-secondary-custom" style="display: none; padding: 6px 12px; font-size: 13px;"><i class="fas fa-sign-out-alt"></i> 登出</button>
                 <a href="../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> 返回個人主頁</a>
             </div>
@@ -166,6 +167,13 @@
                                     <i class="fas fa-bed"></i> <strong>啟用疲勞備案 (被動聽讀)</strong> — 當天疲勞，僅作背景音播放。
                                 </label>
                             </div>
+                            
+                            <div class="ai-vocab-extract-box mt-3 mb-3" style="background: rgba(6, 182, 212, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed var(--accent-cyan);">
+                                <label class="form-label text-cyan"><i class="fas fa-magic"></i> AI 智能單字萃取</label>
+                                <textarea id="aiVocabInputText" class="form-control-custom" rows="2" placeholder="貼上一段英文文章、對話或字幕，讓 AI 自動為您萃取重要單字..." style="font-size: 13px;"></textarea>
+                                <button type="button" class="btn-secondary-custom w-100 mt-2" id="aiExtractVocabBtn"><i class="fas fa-bolt"></i> 開始萃取</button>
+                            </div>
+
                             <div id="inputTimerAlert" class="alert-timer-info" style="display: none; margin-bottom: 20px;"></div>
                             <button type="submit" class="btn-primary-custom w-100"><i class="fas fa-plus"></i> 新增輸入紀錄</button>
                         </form>
@@ -242,67 +250,43 @@
                     </div>
                     <p class="tool-intro">這裡記錄您在學習中記下的高頻生詞，可匯出直接導入 Anki 當中。</p>
                     
-                    <div style="margin-bottom: 15px;">
-                        <textarea id="aiVocabInputText" class="form-control-custom" rows="3" placeholder="貼上一段英文文章、對話或字幕，讓 AI 自動為您萃取重要單字..."></textarea>
-                        <button type="button" class="btn-secondary-custom w-100 mt-2" id="aiExtractVocabBtn"><i class="fas fa-magic"></i> ✨ AI 自動萃取單字</button>
-                    </div>
-
                     <div class="vocab-list-wrapper" id="vocabList">
                         <!-- Vocabulary chips generated dynamically -->
                     </div>
                 </div>
 
-                <!-- Sync & Backup Panel -->
-                <div class="tool-card glass">
-                    <h3><i class="fas fa-sync-alt text-blue"></i> 雲端同步與設定 (方案 A)</h3>
-                    <div class="settings-group">
-                        <p class="tool-intro" style="font-size:12px; margin-top:8px; margin-bottom:0;">
-                            * 已啟動 Cloudflare Pages 同網域安全代理，無需設定金鑰或網址，點擊下方按鈕即可一鍵同步。
-                        </p>
+                <!-- Checkpoints Milestones (Moved to right column) -->
+                <div class="checkpoint-section glass">
+                    <div class="section-header" style="margin-bottom: 12px;">
+                        <h2 style="font-size: 15px;"><i class="fas fa-flag text-cyan"></i> 聽讀自評檢核 (Checkpoints)</h2>
+                        <button class="btn-secondary-custom" id="addCheckpointBtn" style="padding: 4px 8px; font-size: 12px;"><i class="fas fa-plus"></i> 新增</button>
                     </div>
-                    <div class="sync-actions mt-3">
-                        <button class="btn-secondary-custom" id="syncNowBtn" style="flex: 1;"><i class="fas fa-cloud-upload-alt"></i> 手動同步</button>
-                        <button class="btn-secondary-custom" id="exportLocalBtn" title="下載本機備份"><i class="fas fa-download"></i></button>
-                        <button class="btn-secondary-custom" id="importLocalBtn" title="匯入備份"><i class="fas fa-upload"></i></button>
-                        <input type="file" id="importFileHidden" style="display:none;" accept=".json">
-                    </div>
-                    <div class="sync-status mt-2 text-muted" id="syncStatusText">
-                        雲端同步未設定 (資料僅儲存於瀏覽器)
+                    
+                    <div class="checkpoint-content-wrapper">
+                        <div class="checkpoint-intro" style="font-size: 12px; padding: 10px; margin-bottom: 12px;">
+                            <p style="margin:0;">當學習時數達 <strong>80~100 小時</strong> 後，建議透過線上的 Easy Test 進行客觀驗證，檢測吸收效率。</p>
+                        </div>
+                        
+                        <div class="checkpoint-list-wrapper">
+                            <table class="checkpoint-table" style="font-size: 12px;">
+                                <thead>
+                                    <tr>
+                                        <th>日期</th>
+                                        <th>時數</th>
+                                        <th>分數</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="checkpointTableBody">
+                                    <!-- Checkpoints populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Section 3: Checkpoints Milestones -->
-        <section class="checkpoint-section glass mt-4">
-            <div class="section-header">
-                <h2><i class="fas fa-flag text-cyan"></i> 里程碑與聽讀自評檢核 (Checkpoints)</h2>
-                <button class="btn-secondary-custom" id="addCheckpointBtn"><i class="fas fa-plus"></i> 新增檢核紀錄</button>
-            </div>
-            
-            <div class="checkpoint-content-wrapper">
-                <div class="checkpoint-intro">
-                    <p>當學習時數達 <strong>80~100 小時</strong> 後，建議透過線上的 Easy Test 進行客觀驗證，檢測聽力與閱讀的吸收效率，以利動態調整輸入影片/音訊教材之難度。</p>
-                </div>
-                
-                <div class="checkpoint-list-wrapper">
-                    <table class="checkpoint-table">
-                        <thead>
-                            <tr>
-                                <th>檢核日期</th>
-                                <th>累計學習時數</th>
-                                <th>自評/測驗分數</th>
-                                <th>教材難度調整與備註</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="checkpointTableBody">
-                            <!-- Checkpoints populated dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
     </main>
 
     <!-- Modal for Checkpoint Add -->

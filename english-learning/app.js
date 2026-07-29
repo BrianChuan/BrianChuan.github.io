@@ -188,13 +188,8 @@ function setupEventListeners() {
 
 
 
-  // Exporters & Backups
+  // Exporters
   document.getElementById("exportAnkiBtn").addEventListener("click", exportAnkiCSV);
-  document.getElementById("exportLocalBtn").addEventListener("click", exportLocalBackup);
-  document.getElementById("importLocalBtn").addEventListener("click", () => {
-    document.getElementById("importFileHidden").click();
-  });
-  document.getElementById("importFileHidden").addEventListener("change", importLocalBackup);
 
   // Sync settings
   document.getElementById("syncNowBtn").addEventListener("click", syncWithGoogleSheets);
@@ -332,10 +327,10 @@ function renderHeatmap() {
   if (!grid) return;
   grid.innerHTML = "";
 
-  // Always render exactly the last 181 days (~6 months, 26 weeks)
+  // Always render exactly the last 364 days (~1 year, 52 weeks)
   const endDate = new Date();
   let startDate = new Date();
-  startDate.setDate(endDate.getDate() - 181);
+  startDate.setDate(endDate.getDate() - 364);
 
   // Calculate day-of-week offset for row align
   const startDay = isNaN(startDate.getDay()) ? 0 : startDate.getDay(); // 0 is Sunday, 1 is Monday...
@@ -464,7 +459,7 @@ function renderHistory() {
     const dateFormatted = new Date(log.date).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' });
 
     item.innerHTML = `
-      <div class="history-item-details">
+      <div class="history-item-details" style="cursor: pointer;" onclick="openHistoryModal('${log.date}')">
         <span class="badge-log ${badgeClass}${badgeExtra}">${badgeText}</span>
         <h4>${log.title}</h4>
         <div class="history-item-meta">
@@ -516,7 +511,7 @@ function renderCheckpoints() {
   tbody.innerHTML = "";
 
   if (checkpoints.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-muted" style="text-align:center; padding: 20px;">尚無里程碑檢核點。累積時數至 80~100 小時後進行吧！</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align:center; padding: 20px;">尚無檢核點</td></tr>`;
     return;
   }
 
@@ -527,9 +522,8 @@ function renderCheckpoints() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.date}</td>
-      <td>${item.hours} 小時</td>
-      <td>${item.score} 分</td>
-      <td>${item.notes || "無"}</td>
+      <td>${item.hours} h</td>
+      <td>${item.score}</td>
       <td>
         <button class="btn-delete-log" onclick="deleteCheckpoint('${item.id}')" title="刪除"><i class="fas fa-trash-alt"></i></button>
       </td>
@@ -828,7 +822,6 @@ async function syncWithGoogleSheets() {
   const url = "/api/sync";
   const token = localStorage.getItem(SESSION_KEY);
 
-  const syncStatus = document.getElementById("syncStatusText");
   const syncBtn = document.getElementById("syncNowBtn");
   const originalBtnHtml = syncBtn ? syncBtn.innerHTML : "";
 
@@ -837,7 +830,6 @@ async function syncWithGoogleSheets() {
       syncBtn.disabled = true;
       syncBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 同步中...`;
     }
-    syncStatus.innerText = "正在透過 Cloudflare Pages 代理同步資料...";
 
     // Package the full database state to push
     const payload = {
@@ -867,7 +859,7 @@ async function syncWithGoogleSheets() {
     
     const responseJson = await res.json();
     if (responseJson.status === "success") {
-      syncStatus.innerHTML = `<i class="fas fa-check-circle text-emerald"></i> 同步成功！上次同步: ${new Date().toLocaleTimeString()}`;
+      showToast("雲端同步成功！", "success");
       
       // Update local storage with merged lists
       if (responseJson.logs) {
@@ -903,20 +895,8 @@ async function syncWithGoogleSheets() {
 }
 
 function updateSyncStatusText() {
-  const syncStatus = document.getElementById("syncStatusText");
-  if (!syncStatus) return;
-
-  // Check if any logs, vocab, or checkpoints are unsynced
-  const unsyncedLogs = logs.filter(l => !l.synced).length;
-  const unsyncedVocabs = vocab.filter(v => !v.synced).length;
-  const unsyncedCps = checkpoints.filter(c => !c.synced).length;
-  const unsyncedCount = unsyncedLogs + unsyncedVocabs + unsyncedCps;
-
-  if (unsyncedCount > 0) {
-    syncStatus.innerHTML = `<span class="text-orange"><i class="fas fa-exclamation-triangle"></i> 有 ${unsyncedCount} 筆新資料尚未同步</span>`;
-  } else {
-    syncStatus.innerHTML = `<span class="text-emerald"><i class="fas fa-check-circle"></i> 資料已全數安全同步至雲端</span>`;
-  }
+  // Sync status is now handled purely by toast notifications.
+  return;
 }
 
 /* ==========================================================================

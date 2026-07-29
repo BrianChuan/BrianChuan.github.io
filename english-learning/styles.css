@@ -300,6 +300,27 @@ body {
   }
 }
 
+@media (max-width: 768px) {
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-row {
+    flex-direction: column;
+  }
+  .form-row .col-6 {
+    width: 100%;
+  }
+}
+
 /* Logger Tabs styling */
 .logging-tabs {
   padding: 0;
@@ -1390,29 +1411,29 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: #f8fafc;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-color);
 }
 
 .vocab-review-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: #06b6d4;
+  accent-color: var(--accent-cyan);
   cursor: pointer;
 }
 
 .vocab-review-item input[type="text"] {
   flex: 1;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #fff;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   padding: 6px 10px;
   border-radius: 4px;
   font-size: 13px;
 }
 .vocab-review-item input[type="text"]:focus {
   outline: none;
-  border-color: #06b6d4;
+  border-color: var(--accent-cyan);
 }
