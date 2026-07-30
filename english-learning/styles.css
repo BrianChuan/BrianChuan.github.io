@@ -205,6 +205,26 @@ body {
   color: var(--text-muted);
 }
 
+/* Mobile Scaling for Stats Cards (Approx -10%) */
+@media (max-width: 768px) {
+  .stats-card {
+    min-width: 230px;
+    gap: 12px;
+    padding: 18px !important;
+  }
+  .card-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 21px;
+  }
+  .card-info h3 {
+    font-size: 13px;
+  }
+  .stats-value {
+    font-size: 25px;
+  }
+}
+
 /* Accumulator Progress Bar */
 .progress-bar-container {
   background: #edf2f7;
