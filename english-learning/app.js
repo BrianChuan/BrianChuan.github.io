@@ -581,7 +581,8 @@ function handleInputLog(e) {
 
 function submitInputLog() {
   const source = document.getElementById("inputSource").value;
-  const duration = document.getElementById("inputDuration").value;
+  const durationStr = document.getElementById("inputDuration").value;
+  const duration = timeToMins(durationStr);
   const title = document.getElementById("inputTitle").value.trim();
   const passive = document.getElementById("inputPassive").checked;
 
@@ -630,7 +631,8 @@ function handleOutputLog(e) {
 
 function submitOutputLog() {
   const outputType = document.getElementById("outputType").value;
-  const duration = document.getElementById("outputDuration").value;
+  const durationStr = document.getElementById("outputDuration").value;
+  const duration = timeToMins(durationStr);
   const title = document.getElementById("outputTitle").value.trim();
   const ratingEl = document.querySelector('input[name="rating"]:checked');
   const rating = ratingEl ? ratingEl.value : 3;
@@ -1011,7 +1013,7 @@ function handleInputTimerAction() {
     const mins = Math.max(1, Math.round(inputTimerSeconds / 60));
     
     // Update form duration and show manual UI
-    document.getElementById("inputDuration").value = mins;
+    document.getElementById("inputDuration").value = minsToTime(mins);
     showInputManualUI();
     
     // Calculate live goal progression
@@ -1145,7 +1147,7 @@ function handleOutputTimerAction() {
     const mins = Math.max(1, Math.round(outputTimerSeconds / 60));
     
     // Update form duration and show manual UI
-    document.getElementById("outputDuration").value = mins;
+    document.getElementById("outputDuration").value = minsToTime(mins);
     showOutputManualUI();
     
     // Calculate live goal progression
@@ -1482,3 +1484,22 @@ document.getElementById("confirmVocabBtn").addEventListener("click", () => {
 window.closeVocabReviewModal = function() {
   document.getElementById("vocabReviewModal").classList.remove("show");
 };
+
+// ==========================================
+// Utils
+// ==========================================
+function timeToMins(timeStr) {
+  if (!timeStr) return 0;
+  const parts = timeStr.split(':');
+  if (parts.length !== 2) return 0;
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return (h * 60) + m;
+}
+
+function minsToTime(totalMins) {
+  if (isNaN(totalMins) || totalMins < 0) return "00:00";
+  const h = Math.floor(totalMins / 60).toString().padStart(2, '0');
+  const m = (totalMins % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+}

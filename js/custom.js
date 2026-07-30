@@ -230,10 +230,13 @@ function renderProjects(filter = "all") {
         </div>
       `;
     } else {
-      // Show dynamic gradient placeholder for projects without video
+      // Determine demo image based on tags
+      const isHardware = (project.tags || []).some(t => ['STM32', 'Raspberry Pi', 'Robotics', 'AGV', 'Verilog', 'FPGA'].includes(t) || t.includes('Pi'));
+      const demoImgUrl = isHardware ? 'assets/img/demo-robotics.png' : 'assets/img/demo-coding.png';
       coverHtml = `
-        <div class="project-card-cover tech-gradient-placeholder">
-          <i class="fas fa-microchip"></i>
+        <div class="project-card-cover">
+          <img src="${demoImgUrl}" alt="${project.title}" style="opacity: 0.8; filter: grayscale(20%);">
+          <div class="video-play-indicator" style="background: rgba(44, 62, 80, 0.7);"><i class="fas fa-image"></i> 示意圖 (Demo)</div>
         </div>
       `;
     }

@@ -144,16 +144,34 @@ body {
 
 /* Dashboard Stats Cards */
 .dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 15px;
   margin-bottom: 2rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 10px; /* Leave space for scrollbar */
+}
+
+/* Hide scrollbar for cleaner look */
+.dashboard-grid::-webkit-scrollbar {
+  height: 6px;
+}
+.dashboard-grid::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.02);
+}
+.dashboard-grid::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.1);
+  border-radius: 4px;
 }
 
 .stats-card {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
+  min-width: 260px; /* Ensures it shrinks but doesn't get squashed */
+  flex-shrink: 0;
+  flex: 1;
 }
 
 .card-icon {

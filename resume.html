@@ -16,6 +16,62 @@
         <link href="css/styles.css" rel="stylesheet" />
         <!-- Custom Developer Dark/Light Theme -->
         <link href="css/custom-dark.css" rel="stylesheet" />
+        <style>
+            /* Modern Glassmorphism & Aesthetics Overrides */
+            .glass-card {
+                background: rgba(255, 255, 255, 0.7) !important;
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.5) !important;
+                box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05) !important;
+                border-radius: 16px;
+                padding: 2rem;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .glass-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 40px rgba(31, 38, 135, 0.08) !important;
+            }
+            .resume-cover-header {
+                position: relative;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                margin-bottom: 2rem;
+            }
+            .cover-bg-image {
+                position: absolute;
+                top: 0; left: 0; width: 100%; height: 100%;
+                object-fit: cover;
+                z-index: 0;
+            }
+            .cover-gradient-overlay {
+                position: absolute;
+                top: 0; left: 0; width: 100%; height: 100%;
+                background: linear-gradient(90deg, rgba(44, 62, 80, 0.9) 0%, rgba(44, 62, 80, 0.4) 100%);
+                z-index: 1;
+            }
+            .cover-text-content {
+                position: relative;
+                z-index: 2;
+            }
+            .resume-section-content {
+                background: rgba(255,255,255,0.4);
+                backdrop-filter: blur(20px);
+                border-radius: 24px;
+                padding: 3rem !important;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.02);
+                border: 1px solid rgba(255,255,255,0.6);
+            }
+            .timeline-item {
+                background: rgba(255, 255, 255, 0.6);
+                border-radius: 16px;
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+                border-left: 4px solid var(--accent-cyan);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            }
+        </style>
     </head>
     <body id="page-top">
         <!-- Navigation-->
@@ -43,10 +99,13 @@
                 <div class="resume-section-content">
                     
                     <!-- Cover image/video header for Resume -->
-                    <div class="resume-cover-header mb-4" style="min-height: 100px; padding: 24px 30px;">
+                    <div class="resume-cover-header" style="min-height: 250px; padding: 40px;">
+                        <img src="assets/img/demo-coding.png" class="cover-bg-image" alt="Demo Cover">
                         <div class="cover-gradient-overlay"></div>
-                        <div class="cover-text-content">
-                            <span class="badge bg-secondary mb-0">臺北科技大學電子工程系</span>
+                        <div class="cover-text-content d-flex flex-column justify-content-center h-100">
+                            <span class="badge bg-light text-dark mb-3" style="width: fit-content; font-size: 14px; padding: 8px 12px;">臺北科技大學電子工程系</span>
+                            <h2 class="text-white mb-2" style="font-weight: 700; letter-spacing: 1px;">整合硬體與軟體，創造無限可能。</h2>
+                            <p class="text-white-50 mb-0" style="font-size: 1.1rem; max-width: 600px;">Bridging the gap between embedded systems and modern software architecture.</p>
                         </div>
                     </div>
 
@@ -89,7 +148,7 @@
                     </div>
 
                     <!-- Skills (Integrated directly into Section 1) -->
-                    <div class="skills-showcase-box mb-4 p-4 rounded" style="background: rgba(44, 62, 80, 0.03); border: 1px solid var(--border-color);">
+                    <div class="skills-showcase-box mb-4 p-4 rounded glass-card">
                         <h3 class="text-primary mb-3"><i class="fas fa-tools me-2"></i>Core Technical Skills</h3>
                         <div class="subheading mb-3">Programming Languages & Tools</div>
                         <ul class="list-inline dev-icons mb-3">
@@ -171,9 +230,9 @@
                     <div class="row mt-5">
                         <!-- Card 1: Certificates (NVIDIA & iPAS) -->
                         <div class="col-lg-6 mb-4">
-                            <div class="card bg-dark border-secondary p-4 h-100" style="background-color: var(--bg-secondary) !important; border: 1px solid var(--border-color) !important;">
+                            <div class="card p-4 h-100 glass-card">
                                 <h3 class="text-primary mb-3"><i class="fas fa-certificate me-2"></i>專業證照 & AI 認證</h3>
-                                <ul class="fa-ul mb-0">
+                                <ul class="fa-ul mb-0" style="color: var(--text-primary);">
                                     <li class="mb-2">
                                         <span class="fa-li"><i class="fas fa-shield-alt text-info"></i></span>
                                         <b>iPAS 資訊安全工程師</b> 認證 (教育部/經濟部)
@@ -216,9 +275,9 @@
                         
                         <!-- Card 2: Combined Competition Awards -->
                         <div class="col-lg-6 mb-4">
-                            <div class="card bg-dark border-secondary p-4 h-100" style="background-color: var(--bg-secondary) !important; border: 1px solid var(--border-color) !important;">
-                                <h3 class="text-primary mb-3"><i class="fas fa-trophy me-2"></i>競賽獲獎與榮譽 (Awards & Honors)</h3>
-                                <ul class="fa-ul mb-0">
+                            <div class="card p-4 h-100 glass-card">
+                                <h3 class="text-primary mb-3"><i class="fas fa-trophy me-2"></i>競賽獲獎與榮譽</h3>
+                                <ul class="fa-ul mb-0" style="color: var(--text-primary);">
                                     <li class="mb-2">
                                         <span class="fa-li"><i class="fas fa-award text-warning"></i></span>
                                         113學年度 北科大 學生實務專題競賽 <b>第二名</b>
