@@ -39,12 +39,14 @@ export async function onRequestPost(context) {
     // 4. 呼叫 Gemini 3.5 Flash API
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
     
-    const prompt = `你是一個專業的英文學習助手。請從以下使用者輸入的英文學習紀錄或筆記中，萃取出 3 到 5 個最值得學習的高頻單字或片語。
-請以嚴格的 JSON 陣列格式回傳，請不要包含任何 Markdown 標記或 \`\`\`json 等字眼，直接回傳乾淨的 JSON 陣列即可。
+    const prompt = `你是一個專業的英文學習助手。使用者會貼上一段包含多個句子的英文學習筆記。
+請為筆記當中的「每一句完整句子」，挑選出至少 1 個（也可多個）最值得學習的高頻單字或片語。
+請務必將該單字所屬的「完整原句」保留在 sentence 欄位中，以利後續情境回憶。
+請以嚴格的 JSON 陣列格式回傳，請不要包含任何 Markdown 標記，直接回傳乾淨的 JSON。
 範例格式：
 [
-  {"word": "persistent", "pos": "adj.", "chinese": "堅持不懈的"},
-  {"word": "bottleneck", "pos": "n.", "chinese": "瓶頸"}
+  {"word": "persistent", "pos": "adj.", "chinese": "堅持不懈的", "sentence": "He has been persistent in his studies despite the difficulties."},
+  {"word": "bottleneck", "pos": "n.", "chinese": "瓶頸", "sentence": "This module is the bottleneck of the entire system."}
 ]
 
 以下是要分析的內容：

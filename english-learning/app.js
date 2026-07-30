@@ -265,6 +265,9 @@ function renderStats() {
   const totalHrs = (totalMinutes / 60).toFixed(1);
   document.getElementById("totalHours").innerText = totalHrs;
 
+  // Daily Goal Progress
+  renderDailyGoal();
+
   // Milestone Progress (Goal: 100 Hours)
   const progressPct = Math.min(100, Math.round((totalHrs / 100) * 100));
   const progressBar = document.getElementById("hoursProgressBar");
@@ -282,6 +285,37 @@ function renderStats() {
     document.getElementById("lastTestScore").innerText = sorted[0].score;
   } else {
     document.getElementById("lastTestScore").innerText = "N/A";
+  }
+}
+
+// Calculate and render Daily Goal progress
+function renderDailyGoal() {
+  const todayStr = getLocalDateString(new Date());
+  const todayLogs = logs.filter(l => l.date === todayStr);
+  const todayMins = todayLogs.reduce((sum, l) => sum + Number(l.duration), 0);
+  const todayHrs = (todayMins / 60).toFixed(1);
+  
+  const dailyHoursEl = document.getElementById("dailyHoursLogged");
+  const progressBar = document.getElementById("dailyProgressBar");
+  const pctText = document.getElementById("dailyGoalPctText");
+  
+  if (!dailyHoursEl) return;
+  
+  dailyHoursEl.innerText = todayHrs;
+  
+  // Max cap the progress bar at 100% (2 hours = 120 mins)
+  const progressPct = Math.min(100, Math.round((todayMins / 120) * 100));
+  progressBar.style.width = `${progressPct}%`;
+  
+  if (todayMins >= 120) {
+    pctText.innerHTML = `<span style="color: var(--accent-emerald); font-weight: bold;"><i class="fas fa-star"></i> 完美達標！今日學習 ${todayHrs} 小時</span>`;
+    progressBar.style.background = "linear-gradient(90deg, #10b981, #34d399)";
+  } else if (todayMins >= 60) {
+    pctText.innerHTML = `<span style="color: var(--accent-emerald); font-weight: bold;"><i class="fas fa-check-circle"></i> 已達低標！距離完美還差 ${(120 - todayMins)} 分鐘</span>`;
+    progressBar.style.background = "var(--accent-emerald)";
+  } else {
+    pctText.innerHTML = `距離最低標準 1 小時還差 ${60 - todayMins} 分鐘`;
+    progressBar.style.background = "var(--accent-cyan)";
   }
 }
 
@@ -549,7 +583,6 @@ function submitInputLog() {
   const source = document.getElementById("inputSource").value;
   const duration = document.getElementById("inputDuration").value;
   const title = document.getElementById("inputTitle").value.trim();
-  const rawVocab = document.getElementById("inputVocabulary").value.trim();
   const passive = document.getElementById("inputPassive").checked;
 
   if (!duration || Number(duration) <= 0) {
@@ -574,23 +607,6 @@ function submitInputLog() {
     passive,
     synced: false
   };
-
-  // Add words to vocabulary database
-  if (rawVocab) {
-    const words = rawVocab.split(",").map(w => w.trim()).filter(w => w);
-    words.forEach(word => {
-      // Avoid duplicate adding
-      if (!vocab.some(v => v.word.toLowerCase() === word.toLowerCase())) {
-        vocab.push({
-          word,
-          definition: "",
-          date: dateStr,
-          source: title,
-          synced: false
-        });
-      }
-    });
-  }
 
   logs.push(newLog);
   saveData();
@@ -994,38 +1010,28 @@ function handleInputTimerAction() {
     
     const mins = Math.max(1, Math.round(inputTimerSeconds / 60));
     
-    // Form verification & auto submit
-    const titleField = document.getElementById("inputTitle");
-    let title = titleField.value.trim();
-    let apply = false;
-
-    if (!title) {
-      title = prompt(`本次沉浸計時共 ${mins} 分鐘！\n\n請輸入您剛才觀看/聽讀的影片或素材標題，確認後將自動寫入學習日誌：`, "");
-      if (title && title.trim()) {
-        titleField.value = title.trim();
-        apply = true;
-      }
+    // Update form duration and show manual UI
+    document.getElementById("inputDuration").value = mins;
+    showInputManualUI();
+    
+    // Calculate live goal progression
+    const todayStr = getLocalDateString(new Date());
+    const todayLogs = logs.filter(l => l.date === todayStr);
+    const todayMins = todayLogs.reduce((sum, l) => sum + l.duration, 0);
+    const totalMins = todayMins + mins;
+    
+    let alertHtml = `<i class="fas fa-info-circle"></i> 本次計時 <strong>${mins}</strong> 分鐘。請填寫完下方資訊後手動新增紀錄。`;
+    if (totalMins >= 120) {
+      alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🌟 恭喜！加上本次，已達標 2 小時完美目標！</span>`;
+    } else if (totalMins >= 60) {
+      alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🎉 恭喜！加上本次，已達標 1 小時最低標準！</span>`;
     } else {
-      apply = confirm(`計時結束！本次沉浸共 ${mins} 分鐘。\n\n素材標題: "${title}"\n\n是否確認將此學習日誌寫入紀錄？`);
+      alertHtml += ` <span style="margin-left:10px;">(今日預估累計 ${totalMins} 分鐘，距離 1 小時還差 ${60 - totalMins} 分鐘)</span>`;
     }
-
-    if (apply) {
-      document.getElementById("inputDuration").value = mins;
-      submitInputLog();
-      alert(`成功記錄 ${mins} 分鐘的輸入沉浸練習！`);
-      
-      // Auto toggle back to manual UI for next entry
-      showInputManualUI();
-    } else {
-      // Just populate time and show alert
-      document.getElementById("inputDuration").value = mins;
-      const alertEl = document.getElementById("inputTimerAlert");
-      alertEl.style.display = "flex";
-      alertEl.innerHTML = `<i class="fas fa-info-circle"></i> 本次累計計時 <strong>${mins}</strong> 分鐘。您可修改欄位後點擊下方按鈕以存檔。`;
-      
-      // Toggle back to manual to let them see duration field
-      showInputManualUI();
-    }
+    
+    const alertEl = document.getElementById("inputTimerAlert");
+    alertEl.style.display = "flex";
+    alertEl.innerHTML = alertHtml;
     
     resetInputTimer();
   }
@@ -1138,34 +1144,28 @@ function handleOutputTimerAction() {
     
     const mins = Math.max(1, Math.round(outputTimerSeconds / 60));
     
-    const titleField = document.getElementById("outputTitle");
-    let title = titleField.value.trim();
-    let apply = false;
-
-    if (!title) {
-      title = prompt(`本次口說輸出共計 ${mins} 分鐘！\n\n請輸入您剛才討論的主題或練習內容，確認後將自動寫入日誌：`, "");
-      if (title && title.trim()) {
-        titleField.value = title.trim();
-        apply = true;
-      }
+    // Update form duration and show manual UI
+    document.getElementById("outputDuration").value = mins;
+    showOutputManualUI();
+    
+    // Calculate live goal progression
+    const todayStr = getLocalDateString(new Date());
+    const todayLogs = logs.filter(l => l.date === todayStr);
+    const todayMins = todayLogs.reduce((sum, l) => sum + l.duration, 0);
+    const totalMins = todayMins + mins;
+    
+    let alertHtml = `<i class="fas fa-info-circle"></i> 本次口說計時 <strong>${mins}</strong> 分鐘。請填寫完下方資訊後手動新增紀錄。`;
+    if (totalMins >= 120) {
+      alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🌟 恭喜！加上本次，已達標 2 小時完美目標！</span>`;
+    } else if (totalMins >= 60) {
+      alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🎉 恭喜！加上本次，已達標 1 小時最低標準！</span>`;
     } else {
-      apply = confirm(`計時結束！本次輸出共 ${mins} 分鐘。\n\n討論主題: "${title}"\n\n是否確認將此學習日誌寫入紀錄？`);
+      alertHtml += ` <span style="margin-left:10px;">(今日預估累計 ${totalMins} 分鐘，距離 1 小時還差 ${60 - totalMins} 分鐘)</span>`;
     }
-
-    if (apply) {
-      document.getElementById("outputDuration").value = mins;
-      submitOutputLog();
-      alert(`成功記錄 ${mins} 分鐘的輸出練習！`);
-      
-      showOutputManualUI();
-    } else {
-      document.getElementById("outputDuration").value = mins;
-      const alertEl = document.getElementById("outputTimerAlert");
-      alertEl.style.display = "flex";
-      alertEl.innerHTML = `<i class="fas fa-info-circle"></i> 本次累計口說計時 <strong>${mins}</strong> 分鐘。您可修改欄位後點擊下方按鈕以存檔。`;
-      
-      showOutputManualUI();
-    }
+    
+    const alertEl = document.getElementById("outputTimerAlert");
+    alertEl.style.display = "flex";
+    alertEl.innerHTML = alertHtml;
     
     resetOutputTimer();
   }
@@ -1429,13 +1429,20 @@ function renderVocabReviewModal(vocabItems) {
 
   vocabItems.forEach((item, index) => {
     const defaultDef = `${item.pos || ''} ${item.chinese || ''}`.trim();
+    const sentence = item.sentence || "";
     
     const div = document.createElement("div");
     div.className = "vocab-review-item";
+    div.style.flexDirection = "column";
+    div.style.alignItems = "flex-start";
+    div.style.gap = "10px";
     div.innerHTML = `
-      <input type="checkbox" id="review_check_${index}" checked>
-      <label for="review_check_${index}" style="min-width: 100px; font-weight: bold; margin-bottom: 0; color:var(--text-primary);">${item.word}</label>
-      <input type="text" id="review_def_${index}" value="${defaultDef}">
+      <div style="display:flex; width: 100%; align-items:center; gap: 10px;">
+        <input type="checkbox" id="review_check_${index}" checked>
+        <label for="review_check_${index}" style="min-width: 120px; font-weight: bold; margin-bottom: 0; color:var(--text-primary); font-size:16px;">${item.word}</label>
+        <input type="text" id="review_def_${index}" value="${defaultDef}" style="flex:1;">
+      </div>
+      ${sentence ? `<div style="font-size: 13px; color: var(--text-secondary); background: rgba(0,0,0,0.03); padding: 8px 12px; border-radius: 6px; width: 100%; border-left: 3px solid var(--accent-cyan);"><em>"${sentence}"</em></div>` : ''}
     `;
     listContainer.appendChild(div);
   });
@@ -1453,7 +1460,8 @@ document.getElementById("confirmVocabBtn").addEventListener("click", () => {
         id: "v-" + Date.now() + Math.floor(Math.random() * 1000),
         date: getLocalDateString(new Date()),
         word: word,
-        definition: def
+        definition: def,
+        sentence: item.sentence || ""
       };
       vocab.push(newVocab);
       addedCount++;
