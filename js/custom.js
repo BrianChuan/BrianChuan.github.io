@@ -152,6 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initProjects();
   initTerminal();
   initFilters();
+  initFocusToggle();
   initCustomScrollSpy();
 });
 
@@ -180,20 +181,44 @@ async function initProjects() {
   renderProjects();
 }
 
-function renderProjects(filter = "all") {
+let currentFilter = "all";
+let currentFocus = "all";
+
+function renderProjects() {
   const grid = document.getElementById("projectsGrid");
   if (!grid) return;
   grid.innerHTML = "";
 
-  const filteredProjects = projects.filter(p => {
-    if (filter === "all") return true;
-    return p.category === filter;
+  let filteredProjects = projects.filter(p => {
+    if (currentFilter === "all") return true;
+    return p.category === currentFilter;
   });
+
+  const softwareTags = ['FastAPI', 'PHP', 'RAG', 'Line Bot', 'Python', 'Web App', 'HTML5 Canvas', 'Java', 'Groq'];
+  const hardwareTags = ['STM32', 'Raspberry Pi', 'Verilog', 'FPGA', 'AGV', 'Embedded', 'MCU', 'PID Control', 'IoT'];
+
+  // Sort and highlight based on focus
+  if (currentFocus !== "all") {
+    const targetTags = currentFocus === "software" ? softwareTags : hardwareTags;
+    filteredProjects.sort((a, b) => {
+      const aMatch = (a.tags || []).some(t => targetTags.some(target => t.includes(target))) ? 1 : 0;
+      const bMatch = (b.tags || []).some(t => targetTags.some(target => t.includes(target))) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  }
 
   filteredProjects.forEach(project => {
     const card = document.createElement("div");
     card.className = "project-card";
     card.setAttribute("data-id", project.id);
+    
+    // Opacity based on focus
+    if (currentFocus !== "all") {
+        const isSoftware = (project.tags || []).some(t => softwareTags.some(target => t.includes(target)));
+        const isHardware = (project.tags || []).some(t => hardwareTags.some(target => t.includes(target)));
+        if (currentFocus === "software" && !isSoftware) card.style.opacity = "0.35";
+        if (currentFocus === "hardware" && !isHardware) card.style.opacity = "0.35";
+    }
     
     // Category mapping for new "contest" category
     let categoryClass = "course";
@@ -274,8 +299,18 @@ function initFilters() {
     btn.addEventListener("click", () => {
       buttons.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      const filter = btn.getAttribute("data-filter");
-      renderProjects(filter);
+      currentFilter = btn.getAttribute("data-filter");
+      renderProjects();
+    });
+  });
+}
+
+function initFocusToggle() {
+  const toggles = document.querySelectorAll('input[name="focus-toggle"]');
+  toggles.forEach(toggle => {
+    toggle.addEventListener("change", (e) => {
+      currentFocus = e.target.value;
+      renderProjects();
     });
   });
 }
