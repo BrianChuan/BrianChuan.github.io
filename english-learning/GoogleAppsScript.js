@@ -229,7 +229,7 @@ function syncLogsSheet(ss, clientLogs) {
 
 function syncVocabSheet(ss, clientVocab) {
   var sheetName = "生字庫 (Vocabulary)";
-  var headers = ["英文單字", "中文定義/例句", "加入日期", "字詞來源/上下文"];
+  var headers = ["英文單字", "中文定義", "加入日期", "字詞來源/上下文", "例句"];
   var sheetInfo = getSheetData(ss, sheetName, headers);
   var sheet = sheetInfo.sheet;
   var sheetRows = sheetInfo.rows;
@@ -244,12 +244,14 @@ function syncVocabSheet(ss, clientVocab) {
     var definition = row[1] ? row[1].toString().trim() : "";
     var date = row[2] ? formatDate(row[2]) : "";
     var source = row[3] ? row[3].toString().trim() : "";
+    var sentence = row[4] ? row[4].toString().trim() : "";
     
     sheetMap[key] = {
       word: word,
       definition: definition,
       date: date,
       source: source,
+      sentence: sentence,
       synced: true
     };
   });
@@ -288,7 +290,8 @@ function syncVocabSheet(ss, clientVocab) {
         v.word,
         v.definition || "",
         v.date || "",
-        v.source || ""
+        v.source || "",
+        v.sentence || ""
       ]);
     });
     sheet.getRange(2, 1, rowsToWrite.length, headers.length).setValues(rowsToWrite);

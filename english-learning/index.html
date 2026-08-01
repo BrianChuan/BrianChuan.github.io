@@ -185,6 +185,12 @@
                                 <textarea id="aiVocabInputText" class="form-control-custom" rows="2" placeholder="貼上一段英文文章、對話或字幕，讓 AI 自動為您萃取重要單字..." style="font-size: 13px;"></textarea>
                                 <button type="button" class="btn-secondary-custom w-100 mt-2" id="aiExtractVocabBtn"><i class="fas fa-bolt"></i> 開始萃取</button>
                             </div>
+                            
+                            <div class="form-group mb-3" id="pendingVocabContainer" style="display: none;">
+                                <label class="form-label text-emerald"><i class="fas fa-check-circle"></i> 待寫入單字 (將隨紀錄一起存入)</label>
+                                <div id="pendingVocabChips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding: 10px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border: 1px dashed var(--accent-emerald);"></div>
+                            </div>
+
 
                             <div id="inputTimerAlert" class="alert-timer-info" style="display: none; margin-bottom: 20px;"></div>
                             <button type="submit" class="btn-primary-custom w-100"><i class="fas fa-plus"></i> 新增輸入紀錄</button>
@@ -411,13 +417,13 @@
                 <button class="modal-close-btn" onclick="closeVocabReviewModal()">&times;</button>
             </div>
             <div class="modal-content-body" style="padding: 20px;">
-                <p class="text-muted" style="font-size: 13px; margin-bottom: 15px;">請確認以下由 Gemini 萃取的單字。您可以取消勾選不須記憶的字，或手動修改中文翻譯。</p>
+                <p class="text-muted" style="font-size: 13px; margin-bottom: 15px;">請確認以下由 Gemini 萃取的單字，您可以自由修改翻譯或例句。按下確認後將暫存於表單中。</p>
                 <div id="vocabReviewList" class="vocab-review-list">
                     <!-- Dynamic review items go here -->
                 </div>
             </div>
             <div class="modal-content-footer">
-                <button type="button" class="btn-primary-custom w-100" id="confirmVocabBtn"><i class="fas fa-check"></i> 確認並寫入生字庫</button>
+                <button type="button" class="btn-primary-custom w-100" id="confirmVocabBtn"><i class="fas fa-check"></i> 確認保留</button>
             </div>
         </div>
     </div>

@@ -610,6 +610,31 @@ function submitInputLog() {
   };
 
   logs.push(newLog);
+
+  // 處理本次生字
+  if (confirmedPendingVocabs && confirmedPendingVocabs.length > 0) {
+      let addedVocabCount = 0;
+      confirmedPendingVocabs.forEach(item => {
+          const newVocab = {
+              id: "v-" + Date.now() + Math.floor(Math.random() * 1000) + addedVocabCount,
+              date: dateStr,
+              word: item.word,
+              definition: item.definition,
+              sentence: item.sentence,
+              source: title, // 自動設定為本次學習的素材主題
+              synced: false
+          };
+          vocab.push(newVocab);
+          addedVocabCount++;
+      });
+      
+      showToast(`已隨紀錄新增 ${addedVocabCount} 個生字！`, "success");
+      
+      // 清空暫存
+      confirmedPendingVocabs = [];
+      renderPendingVocabChips();
+  }
+
   saveData();
   renderAll();
 
@@ -1371,6 +1396,7 @@ function handleVisibilityChange() {
    AI Vocab Extraction & Review Modal
    ========================================================================== */
 let pendingAiVocabList = [];
+let confirmedPendingVocabs = [];
 
 document.getElementById("aiExtractVocabBtn").addEventListener("click", async () => {
   const textInput = document.getElementById("aiVocabInputText");
@@ -1444,7 +1470,10 @@ function renderVocabReviewModal(vocabItems) {
         <label for="review_check_${index}" style="min-width: 120px; font-weight: bold; margin-bottom: 0; color:var(--text-primary); font-size:16px;">${item.word}</label>
         <input type="text" id="review_def_${index}" value="${defaultDef}" style="flex:1;">
       </div>
-      ${sentence ? `<div style="font-size: 13px; color: var(--text-secondary); background: rgba(0,0,0,0.03); padding: 8px 12px; border-radius: 6px; width: 100%; border-left: 3px solid var(--accent-cyan);"><em>"${sentence}"</em></div>` : ''}
+      ${sentence ? `<div style="display:flex; width: 100%; align-items:center; gap: 10px; margin-top: 5px;">
+          <span style="font-size: 13px; color: var(--text-secondary); white-space: nowrap;">例句:</span>
+          <input type="text" id="review_sent_${index}" value="${sentence}" style="flex:1; font-size: 13px; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+      </div>` : ''}
     `;
     listContainer.appendChild(div);
   });
@@ -1457,25 +1486,22 @@ document.getElementById("confirmVocabBtn").addEventListener("click", () => {
     if (checkbox && checkbox.checked) {
       const word = item.word;
       const def = document.getElementById(`review_def_${index}`).value.trim();
+      const sentInput = document.getElementById(`review_sent_${index}`);
+      const sentence = sentInput ? sentInput.value.trim() : (item.sentence || "");
       
-      const newVocab = {
-        id: "v-" + Date.now() + Math.floor(Math.random() * 1000),
-        date: getLocalDateString(new Date()),
+      confirmedPendingVocabs.push({
         word: word,
         definition: def,
-        sentence: item.sentence || ""
-      };
-      vocab.push(newVocab);
+        sentence: sentence
+      });
       addedCount++;
     }
   });
 
   if (addedCount > 0) {
-    saveData();
-    renderAll();
-    syncWithGoogleSheets();
-    showToast(`成功新增 ${addedCount} 個 AI 單字！`, "success");
+    showToast(`已保留 ${addedCount} 個單字，將隨紀錄一起存入！`, "success");
     document.getElementById("aiVocabInputText").value = "";
+    renderPendingVocabChips();
   }
   
   closeVocabReviewModal();
@@ -1483,6 +1509,38 @@ document.getElementById("confirmVocabBtn").addEventListener("click", () => {
 
 window.closeVocabReviewModal = function() {
   document.getElementById("vocabReviewModal").classList.remove("show");
+};
+
+function renderPendingVocabChips() {
+  const container = document.getElementById("pendingVocabContainer");
+  const chipsDiv = document.getElementById("pendingVocabChips");
+  
+  if (confirmedPendingVocabs.length === 0) {
+    container.style.display = "none";
+    chipsDiv.innerHTML = "";
+    return;
+  }
+  
+  container.style.display = "block";
+  chipsDiv.innerHTML = "";
+  
+  confirmedPendingVocabs.forEach((item, index) => {
+    const chip = document.createElement("span");
+    chip.className = "vocab-chip";
+    chip.style.background = "var(--accent-emerald-glow)";
+    chip.style.borderColor = "var(--accent-emerald)";
+    chip.title = item.definition;
+    chip.innerHTML = `
+      <strong>${item.word}</strong>
+      <span class="vocab-chip-remove" onclick="removePendingVocab(${index})" style="color:var(--text-secondary);">&times;</span>
+    `;
+    chipsDiv.appendChild(chip);
+  });
+}
+
+window.removePendingVocab = function(index) {
+  confirmedPendingVocabs.splice(index, 1);
+  renderPendingVocabChips();
 };
 
 // ==========================================
