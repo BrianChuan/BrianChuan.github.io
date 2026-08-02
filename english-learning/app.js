@@ -1382,10 +1382,10 @@ function closeHistoryModal() {
 
 function handleVisibilityChange() {
   if (document.visibilityState === "visible") {
-    if (activeTimerType === "input" && inputTimerStartTime) {
+    if (activeTimerType === "input" && inputTimerStartTime && !inputTimerIsPaused) {
       inputTimerSeconds = Math.floor((Date.now() - inputTimerStartTime) / 1000);
       updateInputTimerDisplay();
-    } else if (activeTimerType === "output" && outputTimerStartTime) {
+    } else if (activeTimerType === "output" && outputTimerStartTime && !outputTimerIsPaused) {
       outputTimerSeconds = Math.floor((Date.now() - outputTimerStartTime) / 1000);
       updateOutputTimerDisplay();
     }
