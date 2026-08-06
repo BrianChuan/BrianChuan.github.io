@@ -69,8 +69,15 @@ class CustomDialog {
       label.className = 'form-label';
       wrapper.appendChild(label);
       
-      const input = document.createElement('input');
-      input.type = 'text';
+      let input;
+      if (inp.type === 'textarea') {
+        input = document.createElement('textarea');
+        input.rows = 5;
+        input.style.resize = 'vertical';
+      } else {
+        input = document.createElement('input');
+        input.type = inp.type || 'text';
+      }
       input.className = 'form-control-custom';
       input.placeholder = inp.placeholder || '';
       input.value = inp.value || '';
@@ -601,8 +608,9 @@ function renderHistory() {
           <span><i class="fas fa-info-circle"></i> ${detailMeta}</span>
         </div>
       </div>
-      <div>
-        <button class="btn-delete-log" onclick="deleteLog('${log.id}')" title="刪除此紀錄"><i class="fas fa-trash-alt"></i></button>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="btn-text-only" onclick="openAiExtractForLog('${log.id}', event)" title="AI 萃取單字" style="color: var(--accent-cyan); padding: 4px;"><i class="fas fa-magic"></i></button>
+        <button class="btn-delete-log" onclick="deleteLog('${log.id}')" title="刪除此紀錄" style="margin: 0;"><i class="fas fa-trash-alt"></i></button>
       </div>
     `;
 
@@ -1402,10 +1410,33 @@ function handleVisibilityChange() {
    ========================================================================== */
 let pendingAiVocabList = [];
 let confirmedPendingVocabs = [];
+let activeHistoryLogForAi = null; // Track which historical log is being extracted for
 
 let aiExtractAbortController = null;
 
-document.getElementById("aiExtractVocabBtn").addEventListener("click", async () => {
+window.openAiExtractForLog = function(logId, event) {
+  event.stopPropagation();
+  const log = logs.find(l => l.id === logId);
+  if (!log) return;
+  
+  activeHistoryLogForAi = log;
+  
+  CustomDialog.show({
+    title: "AI 萃取專屬單字",
+    message: `請貼上與「${log.title}」相關的英文文章或對話，系統將自動為您萃取單字，並記錄來源為此事件：`,
+    inputs: [
+      { label: "英文內容", placeholder: "貼上內文...", type: "textarea" }
+    ],
+    confirmText: "開始萃取",
+    onConfirm: (values) => {
+      const text = values[0]?.trim();
+      if (!text) return;
+      triggerAiExtraction(text);
+    }
+  });
+};
+
+document.getElementById("aiExtractVocabBtn").addEventListener("click", () => {
   const textInput = document.getElementById("aiVocabInputText");
   const text = textInput.value.trim();
   const btn = document.getElementById("aiExtractVocabBtn");
@@ -1414,7 +1445,12 @@ document.getElementById("aiExtractVocabBtn").addEventListener("click", async () 
     showToast("請先貼上英文文章、對話或字幕！", "error");
     return;
   }
+  
+  activeHistoryLogForAi = null; // Normal flow, not attached to history yet
+  triggerAiExtraction(text, btn);
+});
 
+async function triggerAiExtraction(text, btnElement = null) {
   aiExtractAbortController = new AbortController();
   const signal = aiExtractAbortController.signal;
 
@@ -1435,9 +1471,12 @@ document.getElementById("aiExtractVocabBtn").addEventListener("click", async () 
     }
   }, 1000);
 
-  const originalHtml = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> AI 萃取中...`;
+  let originalHtml = "";
+  if (btnElement) {
+    originalHtml = btnElement.innerHTML;
+    btnElement.disabled = true;
+    btnElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i> AI 萃取中...`;
+  }
 
   try {
     const token = localStorage.getItem(SESSION_KEY);
@@ -1480,10 +1519,12 @@ document.getElementById("aiExtractVocabBtn").addEventListener("click", async () 
   } finally {
     clearInterval(timerInterval);
     if (modal) modal.classList.remove("show");
-    btn.disabled = false;
-    btn.innerHTML = originalHtml;
+    if (btnElement) {
+      btnElement.disabled = false;
+      btnElement.innerHTML = originalHtml;
+    }
   }
-});
+}
 
 document.getElementById("cancelAiExtractBtn")?.addEventListener("click", () => {
   if (aiExtractAbortController) {
@@ -1540,9 +1581,31 @@ document.getElementById("confirmVocabBtn").addEventListener("click", () => {
   });
 
   if (addedCount > 0) {
-    showToast(`已保留 ${addedCount} 個單字，將隨紀錄一起存入！`, "success");
-    document.getElementById("aiVocabInputText").value = "";
-    renderPendingVocabChips();
+    if (activeHistoryLogForAi) {
+      // Historical extraction: push directly to vocab array
+      confirmedPendingVocabs.forEach(item => {
+        vocab.push({
+          id: "voc-" + Date.now() + Math.floor(Math.random() * 1000),
+          word: item.word,
+          definition: item.definition,
+          sentence: item.sentence,
+          source: (activeHistoryLogForAi.type === "input" ? "輸入學習: " : "輸出練習: ") + activeHistoryLogForAi.title,
+          date: activeHistoryLogForAi.date,
+          synced: false
+        });
+      });
+      confirmedPendingVocabs = []; // clear it since we saved directly
+      saveData();
+      renderVocab();
+      renderFullVocabList();
+      syncWithGoogleSheets();
+      showToast(`已成功萃取 ${addedCount} 個單字並存入單字庫！`, "success");
+    } else {
+      // Normal extraction: save in pending queue for new log
+      showToast(`已保留 ${addedCount} 個單字，將隨紀錄一起存入！`, "success");
+      document.getElementById("aiVocabInputText").value = "";
+      renderPendingVocabChips();
+    }
   }
   
   closeVocabReviewModal();
@@ -1761,10 +1824,27 @@ function startDailyQuiz() {
     // Generate 3 distractors
     const distractors = [...vocab].filter(dist => dist.id !== v.id).sort(() => 0.5 - Math.random()).slice(0, 3);
     const options = [v.definition, ...distractors.map(d => d.definition)];
-    // Ensure unique options if possible, fallback to word if definition is empty
-    const uniqueOptions = [...new Set(options.map((opt, i) => opt || `(無定義 ${i})`))];
+    const genericDistractors = [
+      "v. 放棄、遺棄", "n. 過程、進程", "adj. 重要的、關鍵的", "adv. 經常地、頻繁地",
+      "n. 機會、時機", "v. 建立、創立", "adj. 複雜的、錯綜的", "n. 發展、進步",
+      "v. 包含、包括", "adj. 明顯的、顯著的", "n. 影響、作用", "v. 提供、供應",
+      "n. 環境、周遭", "adj. 傳統的、慣例的", "v. 考慮、思考", "n. 系統、制度"
+    ];
+    // Ensure unique options if possible, fallback to generic if definition is empty
+    const uniqueOptions = [...new Set(options.map((opt, i) => opt || "" ))].filter(o => o !== "");
+    
+    // Always ensure the correct answer is in the set
+    if (!uniqueOptions.includes(v.definition || "(無定義)")) {
+      uniqueOptions.unshift(v.definition || "(無定義)");
+    }
+
+    let genericIdx = 0;
     while(uniqueOptions.length < 4) {
-      uniqueOptions.push(`干擾選項 ${uniqueOptions.length}`);
+      const fallback = genericDistractors[genericIdx % genericDistractors.length];
+      if (!uniqueOptions.includes(fallback)) {
+        uniqueOptions.push(fallback);
+      }
+      genericIdx++;
     }
     const finalOptions = uniqueOptions.slice(0, 4).sort(() => 0.5 - Math.random());
     

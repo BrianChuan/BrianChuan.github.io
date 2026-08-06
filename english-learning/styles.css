@@ -349,7 +349,17 @@ body {
     justify-content: space-between;
   }
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    overflow-x: visible;
+  }
+  .heatmap-wrapper {
+    /* Scale down the heatmap wrapper on mobile to prevent scrolling */
+    transform: scale(0.45);
+    transform-origin: left top;
+    width: 220%; /* Compensate for the scale to fill container */
+    overflow-x: hidden;
   }
   .form-row {
     flex-direction: column;
@@ -829,6 +839,10 @@ body {
 .custom-modal.show {
   opacity: 1;
   pointer-events: auto;
+}
+
+#customDialogModal {
+  z-index: 1050 !important;
 }
 
 .modal-content-wrapper {
