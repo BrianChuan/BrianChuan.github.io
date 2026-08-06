@@ -360,11 +360,16 @@ body {
     overflow-x: visible;
   }
   .heatmap-wrapper {
-    /* Scale down the heatmap wrapper on mobile to prevent scrolling */
-    transform: scale(0.45);
-    transform-origin: left top;
-    width: 220%; /* Compensate for the scale to fill container */
     overflow-x: hidden;
+    margin-bottom: 0;
+  }
+  .heatmap-grid {
+    grid-template-rows: repeat(7, 5px);
+    gap: 2px;
+  }
+  .heatmap-cell {
+    width: 5px;
+    height: 5px;
   }
   .form-row {
     flex-direction: column;
