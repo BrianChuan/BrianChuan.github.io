@@ -130,7 +130,7 @@ body {
 .app-container {
   max-width: 1200px;
   margin: 2rem auto;
-  padding: 0 24px;
+  padding: 0 24px calc(env(safe-area-inset-bottom, 20px) + 40px) 24px;
 }
 
 /* Glassmorphism Panel styles - Adjusted to light mode */
@@ -1457,4 +1457,41 @@ body {
 .vocab-review-item input[type="text"]:focus {
   outline: none;
   border-color: var(--accent-cyan);
+}
+
+/* ==========================================================================
+   Vocab Library & Daily Quiz Styles
+   ========================================================================== */
+.quiz-option-btn {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+.quiz-option-btn:hover:not(:disabled) {
+  background: var(--bg-card);
+  border-color: var(--accent-orange);
+  transform: translateY(-1px);
+}
+.quiz-option-btn.correct {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #065f46;
+}
+.quiz-option-btn.wrong {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+@keyframes indeterminateProgress {
+  0% { left: -100%; width: 100%; }
+  50% { left: 50%; width: 50%; }
+  100% { left: 100%; width: 100%; }
 }

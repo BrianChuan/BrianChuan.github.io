@@ -47,6 +47,7 @@
                 <h1>英文沉浸式學習紀錄器 <span>Immersive Tracker</span></h1>
             </div>
             <div class="header-actions" style="display: flex; align-items: center; gap: 15px;">
+                <button id="openVocabLibraryBtn" class="btn-secondary-custom" style="padding: 6px 12px; font-size: 13px; border-color: var(--accent-emerald); color: var(--accent-emerald);"><i class="fas fa-book"></i> 單字庫</button>
                 <button id="syncNowBtn" class="btn-secondary-custom" style="padding: 6px 12px; font-size: 13px;"><i class="fas fa-cloud-upload-alt"></i> 同步</button>
                 <button id="logoutBtn" class="btn-secondary-custom" style="display: none; padding: 6px 12px; font-size: 13px;"><i class="fas fa-sign-out-alt"></i> 登出</button>
                 <a href="../index.html" class="back-btn"><i class="fas fa-arrow-left"></i> 返回個人主頁</a>
@@ -135,6 +136,13 @@
             <!-- Left Side: Loggers -->
             <div class="layout-main-column">
                 <div class="logging-tabs glass">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 15px 0 15px;">
+                        <div></div> <!-- spacer -->
+                        <div style="display:flex; align-items:center; gap: 8px;">
+                            <button type="button" class="btn-text-only text-cyan" id="toggleCustomDateBtn" style="font-size: 12px; padding: 0;"><i class="fas fa-calendar-plus"></i> 補登舊紀錄</button>
+                            <input type="date" id="customLogDate" class="form-control-custom" style="display: none; padding: 2px 6px; font-size: 12px; width: auto; height: auto; background: rgba(0,0,0,0.2);">
+                        </div>
+                    </div>
                     <div class="tab-headers">
                         <button class="tab-btn active" data-tab="input-log-tab"><i class="fas fa-sign-in-alt text-cyan"></i> 輸入紀錄 (Input)</button>
                         <button class="tab-btn" data-tab="output-log-tab"><i class="fas fa-sign-out-alt text-emerald"></i> 輸出紀錄 (Output)</button>
@@ -187,7 +195,10 @@
                             </div>
                             
                             <div class="form-group mb-3" id="pendingVocabContainer" style="display: none;">
-                                <label class="form-label text-emerald"><i class="fas fa-check-circle"></i> 待寫入單字 (將隨紀錄一起存入)</label>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label class="form-label text-emerald" style="margin-bottom:0;"><i class="fas fa-check-circle"></i> 待寫入單字 (將隨紀錄一起存入)</label>
+                                    <button type="button" class="btn-text-only text-emerald" id="addPendingVocabBtn" style="font-size: 12px; padding: 0;"><i class="fas fa-plus"></i> 手動加入</button>
+                                </div>
                                 <div id="pendingVocabChips" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding: 10px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border: 1px dashed var(--accent-emerald);"></div>
                             </div>
 
@@ -260,6 +271,25 @@
             <!-- Right Side: Gemini Assistant & Anki Exporter -->
             <div class="layout-side-column">
 
+                <!-- Daily Quiz Card -->
+                <div class="tool-card glass mb-4" id="dailyQuizCard">
+                    <div class="header-with-action">
+                        <h3><i class="fas fa-graduation-cap text-orange"></i> 每日測驗 (Daily Quiz)</h3>
+                        <span id="quizStatusBadge" class="badge" style="background: rgba(245,158,11,0.2); color: #f59e0b; padding: 2px 8px; border-radius: 12px; font-size: 11px;">未完成</span>
+                    </div>
+                    <p class="tool-intro" id="quizIntroText">每天完成 5 題單字測驗，保持記憶力！</p>
+                    
+                    <div id="quizContainer" style="display: none; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <div style="display:flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+                            <span>Question <span id="quizCurrentQ">1</span>/5</span>
+                        </div>
+                        <h4 id="quizQuestionText" style="text-align: center; margin-bottom: 15px; font-size: 18px; color: var(--text-primary);"></h4>
+                        <div id="quizOptionsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Option buttons -->
+                        </div>
+                    </div>
+                    <button class="btn-primary-custom w-100 mt-3" id="startQuizBtn" style="background: var(--accent-orange); border-color: var(--accent-orange);"><i class="fas fa-play"></i> 開始今日測驗</button>
+                </div>
 
                 <!-- Anki Vocabulary Box -->
                 <div class="tool-card glass mb-4">
@@ -424,6 +454,58 @@
             </div>
             <div class="modal-content-footer">
                 <button type="button" class="btn-primary-custom w-100" id="confirmVocabBtn"><i class="fas fa-check"></i> 確認保留</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Extraction Progress Modal -->
+    <div id="aiExtractProgressModal" class="custom-modal">
+        <div class="modal-content-wrapper" style="max-width: 400px; text-align: center; padding: 30px;">
+            <i class="fas fa-robot text-cyan fa-3x mb-3" style="animation: pulse 1.5s infinite;"></i>
+            <h4 style="color:var(--text-primary); margin-bottom: 10px;">AI 正在為您萃取單字...</h4>
+            <div class="progress-bar-container" style="margin: 20px 0; height: 8px; overflow: hidden; position: relative; background: rgba(255,255,255,0.1); border-radius: 4px;">
+                <div style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: var(--accent-cyan); animation: indeterminateProgress 1.5s infinite linear;"></div>
+            </div>
+            <div id="aiExtractTimerDisplay" style="font-family: 'Fira Code', monospace; color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">0s</div>
+            <button type="button" class="btn-custom btn-custom-secondary" id="cancelAiExtractBtn" style="display: none; margin: 0 auto;"><i class="fas fa-times"></i> 取消萃取</button>
+        </div>
+    </div>
+
+    <!-- Vocabulary Library Modal -->
+    <div id="vocabLibraryModal" class="custom-modal">
+        <div class="modal-content-wrapper" style="max-width: 800px; height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-content-header">
+                <h4><i class="fas fa-book text-emerald"></i> 完整單字庫 (Vocabulary Library)</h4>
+                <button class="modal-close-btn" onclick="closeVocabLibraryModal()">&times;</button>
+            </div>
+            <div class="modal-content-body" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 20px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div style="flex: 1; position: relative;">
+                        <i class="fas fa-search" style="position: absolute; left: 12px; top: 12px; color: var(--text-secondary);"></i>
+                        <input type="text" id="vocabSearchInput" class="form-control-custom" placeholder="搜尋英文或中文..." style="width: 100%; padding-left: 35px;">
+                    </div>
+                    <button class="btn-primary-custom" id="manualAddVocabLibBtn"><i class="fas fa-plus"></i> 新增單字</button>
+                </div>
+                <div id="fullVocabList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px;">
+                    <!-- Full vocab items here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Dialog Modal -->
+    <div id="customDialogModal" class="custom-modal">
+        <div class="modal-content-wrapper" style="max-width: 400px;">
+            <div class="modal-content-header">
+                <h4 id="customDialogTitle"><i class="fas fa-edit text-emerald"></i> 編輯內容</h4>
+            </div>
+            <div class="modal-content-body" style="padding: 20px;">
+                <p id="customDialogMessage" class="text-secondary" style="font-size: 14px; margin-bottom: 15px;"></p>
+                <div id="customDialogInputs"></div>
+            </div>
+            <div class="modal-content-footer" style="display: flex; gap: 10px; padding: 15px 20px; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.02);">
+                <button type="button" class="btn-secondary-custom" id="customDialogCancelBtn" style="flex: 1;">取消</button>
+                <button type="button" class="btn-primary-custom" id="customDialogConfirmBtn" style="flex: 1;">確定</button>
             </div>
         </div>
     </div>

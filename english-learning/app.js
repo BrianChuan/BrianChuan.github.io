@@ -41,15 +41,80 @@ let logs = [];
 let vocab = [];
 let checkpoints = [];
 // Timer State Variables
-let inputTimerInterval = null;
-let inputTimerSeconds = 0;
-let inputTimerStartTime = null;
-let inputTimerIsPaused = false;
-let outputTimerInterval = null;
-let outputTimerSeconds = 0;
-let outputTimerStartTime = null;
-let outputTimerIsPaused = false;
 let activeTimerType = null; // 'input' or 'output' or null
+
+class CustomDialog {
+  static show({ title, message, inputs = [], confirmText = '確定', cancelText = '取消', onConfirm }) {
+    const modal = document.getElementById('customDialogModal');
+    document.getElementById('customDialogTitle').innerHTML = title;
+    
+    const msgEl = document.getElementById('customDialogMessage');
+    if (message) {
+      msgEl.innerText = message;
+      msgEl.style.display = 'block';
+    } else {
+      msgEl.style.display = 'none';
+    }
+    
+    const inputsContainer = document.getElementById('customDialogInputs');
+    inputsContainer.innerHTML = '';
+    const inputElements = [];
+    
+    inputs.forEach(inp => {
+      const wrapper = document.createElement('div');
+      wrapper.style.marginBottom = '10px';
+      
+      const label = document.createElement('label');
+      label.innerText = inp.label;
+      label.className = 'form-label';
+      wrapper.appendChild(label);
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-control-custom';
+      input.placeholder = inp.placeholder || '';
+      input.value = inp.value || '';
+      wrapper.appendChild(input);
+      inputElements.push(input);
+      inputsContainer.appendChild(wrapper);
+    });
+    
+    const confirmBtn = document.getElementById('customDialogConfirmBtn');
+    const cancelBtn = document.getElementById('customDialogCancelBtn');
+    confirmBtn.innerText = confirmText;
+    cancelBtn.innerText = cancelText;
+    
+    const cleanup = () => {
+      modal.classList.remove('show');
+      confirmBtn.onclick = null;
+      cancelBtn.onclick = null;
+    };
+    
+    confirmBtn.onclick = () => {
+      const values = inputElements.map(el => el.value);
+      cleanup();
+      if (onConfirm) onConfirm(values);
+    };
+    
+    cancelBtn.onclick = () => {
+      cleanup();
+    };
+    
+    modal.classList.add('show');
+    if (inputElements.length > 0) {
+      setTimeout(() => inputElements[0].focus(), 100);
+    }
+  }
+
+  static confirm(title, message, callback) {
+    this.show({
+      title: `<i class="fas fa-exclamation-triangle text-orange"></i> ${title}`,
+      message,
+      confirmText: '確認',
+      onConfirm: () => callback(true)
+    });
+  }
+}
 
 // Initialize App
 document.addEventListener("DOMContentLoaded", () => {
@@ -154,19 +219,52 @@ function setupLoginListeners() {
   });
 }
 
-// Load Data from LocalStorage
-function loadData() {
-  logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
-  vocab = JSON.parse(localStorage.getItem(VOCAB_KEY)) || [];
-  checkpoints = JSON.parse(localStorage.getItem(CHECKPOINTS_KEY)) || [];
+class AppStore {
+  static get logs() { return logs; }
+  static set logs(val) { logs = val; this.save(); }
+  
+  static get vocab() { return vocab; }
+  static set vocab(val) { vocab = val; this.save(); }
+  
+  static get checkpoints() { return checkpoints; }
+  static set checkpoints(val) { checkpoints = val; this.save(); }
+
+  static load() {
+    try {
+      logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
+    } catch (e) {
+      console.warn("Failed to parse logs from localStorage, resetting to empty array.");
+      logs = [];
+    }
+    try {
+      vocab = JSON.parse(localStorage.getItem(VOCAB_KEY)) || [];
+    } catch (e) {
+      console.warn("Failed to parse vocab from localStorage, resetting to empty array.");
+      vocab = [];
+    }
+    try {
+      checkpoints = JSON.parse(localStorage.getItem(CHECKPOINTS_KEY)) || [];
+    } catch (e) {
+      console.warn("Failed to parse checkpoints from localStorage, resetting to empty array.");
+      checkpoints = [];
+    }
+  }
+
+  static save() {
+    try {
+      localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+      localStorage.setItem(VOCAB_KEY, JSON.stringify(vocab));
+      localStorage.setItem(CHECKPOINTS_KEY, JSON.stringify(checkpoints));
+    } catch (e) {
+      console.error("Local storage quota exceeded or unavailable.", e);
+      showToast("儲存失敗：本機空間不足或瀏覽器設定阻擋", "error");
+    }
+  }
 }
 
-// Save Data to LocalStorage
-function saveData() {
-  localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
-  localStorage.setItem(VOCAB_KEY, JSON.stringify(vocab));
-  localStorage.setItem(CHECKPOINTS_KEY, JSON.stringify(checkpoints));
-}
+// Helper aliases to maintain compatibility with existing codebase
+function loadData() { AppStore.load(); }
+function saveData() { AppStore.save(); }
 
 // Event Listeners Routing
 function setupEventListeners() {
@@ -209,21 +307,17 @@ function setupEventListeners() {
   document.getElementById("clearAllLogsBtn").addEventListener("click", clearAllLogs);
 
   // Timer Actions
-  document.getElementById("toggleInputTimerBtn").addEventListener("click", toggleInputTimerUI);
-  document.getElementById("startInputTimerBtn").addEventListener("click", handleInputTimerAction);
-  document.getElementById("pauseInputTimerBtn").addEventListener("click", handlePauseTimerAction);
-  document.getElementById("toggleOutputTimerBtn").addEventListener("click", toggleOutputTimerUI);
-  document.getElementById("startOutputTimerBtn").addEventListener("click", handleOutputTimerAction);
-  document.getElementById("pauseOutputTimerBtn").addEventListener("click", handlePauseTimerAction);
+  document.getElementById("toggleInputTimerBtn").addEventListener("click", () => TimerManager.toggleUI("input"));
+  document.getElementById("startInputTimerBtn").addEventListener("click", () => TimerManager.handleAction("input"));
+  document.getElementById("pauseInputTimerBtn").addEventListener("click", () => TimerManager.handlePause());
+  document.getElementById("toggleOutputTimerBtn").addEventListener("click", () => TimerManager.toggleUI("output"));
+  document.getElementById("startOutputTimerBtn").addEventListener("click", () => TimerManager.handleAction("output"));
+  document.getElementById("pauseOutputTimerBtn").addEventListener("click", () => TimerManager.handlePause());
 
   // Zone Mode Controls
-  document.getElementById("zonePauseBtn").addEventListener("click", handlePauseTimerAction);
+  document.getElementById("zonePauseBtn").addEventListener("click", () => TimerManager.handlePause());
   document.getElementById("zoneStopBtn").addEventListener("click", () => {
-    if (activeTimerType === "input") {
-      handleInputTimerAction();
-    } else if (activeTimerType === "output") {
-      handleOutputTimerAction();
-    }
+    if (activeTimerType) TimerManager.handleAction(activeTimerType);
   });
   document.getElementById("zoneMinimizeBtn").addEventListener("click", () => {
     document.getElementById("zoneOverlay").classList.remove("show");
@@ -596,7 +690,10 @@ function submitInputLog() {
   }
 
   const logId = "in-" + Date.now();
-  const dateStr = getLocalDateString(new Date());
+  const customDateInput = document.getElementById("customLogDate");
+  const dateStr = (customDateInput && customDateInput.style.display !== "none" && customDateInput.value) 
+    ? customDateInput.value 
+    : getLocalDateString(new Date());
 
   const newLog = {
     id: logId,
@@ -636,10 +733,16 @@ function submitInputLog() {
   }
 
   saveData();
-  renderAll();
+  renderStats();
+  renderHistory();
+  renderHeatmap();
 
   // Reset Form
   document.getElementById("inputLogForm").reset();
+  
+  // Clear Drafts
+  const inputFields = ["inputSource", "inputDuration", "inputTitle", "inputPassive", "aiVocabInputText"];
+  inputFields.forEach(id => localStorage.removeItem('draft_' + id));
   
   // Hide timer alert if visible
   const alertEl = document.getElementById("inputTimerAlert");
@@ -672,7 +775,10 @@ function submitOutputLog() {
   }
 
   const logId = "out-" + Date.now();
-  const dateStr = getLocalDateString(new Date());
+  const customDateInput = document.getElementById("customLogDate");
+  const dateStr = (customDateInput && customDateInput.style.display !== "none" && customDateInput.value) 
+    ? customDateInput.value 
+    : getLocalDateString(new Date());
 
   const newLog = {
     id: logId,
@@ -687,10 +793,16 @@ function submitOutputLog() {
 
   logs.push(newLog);
   saveData();
-  renderAll();
+  renderStats();
+  renderHistory();
+  renderHeatmap();
 
   // Reset Form
   document.getElementById("outputLogForm").reset();
+
+  // Clear Drafts
+  const outputFields = ["outputType", "outputDuration", "outputTitle"];
+  outputFields.forEach(id => localStorage.removeItem('draft_' + id));
 
   // Hide timer alert
   const alertEl = document.getElementById("outputTimerAlert");
@@ -701,18 +813,22 @@ function submitOutputLog() {
 }
 
 window.deleteLog = function(id) {
-  if (!confirm("確定要刪除此筆學習紀錄嗎？")) return;
-  logs = logs.filter(l => l.id !== id);
-  saveData();
-  renderAll();
-  // Auto-sync on delete
-  syncWithGoogleSheets();
+  CustomDialog.confirm("刪除紀錄", "確定要刪除此筆學習紀錄嗎？", (confirmed) => {
+    if (confirmed) {
+      logs = logs.filter(l => l.id !== id);
+      saveData();
+      renderStats();
+      renderHistory();
+      renderHeatmap();
+      syncWithGoogleSheets();
+    }
+  });
 };
 
 window.deleteVocab = function(index) {
   vocab.splice(index, 1);
   saveData();
-  renderAll();
+  renderVocab();
 };
 
 
@@ -787,7 +903,7 @@ function handleCheckpointAdd(e) {
 
   checkpoints.push(newCheckpoint);
   saveData();
-  renderAll();
+  renderCheckpoints();
   
   closeCheckpointModal();
   document.getElementById("checkpointForm").reset();
@@ -797,12 +913,14 @@ function handleCheckpointAdd(e) {
 }
 
 window.deleteCheckpoint = function(id) {
-  if (!confirm("確定要刪除此筆里程碑檢核紀錄嗎？")) return;
-  checkpoints = checkpoints.filter(c => c.id !== id);
-  saveData();
-  renderAll();
-  // Auto-sync on delete
-  syncWithGoogleSheets();
+  CustomDialog.confirm("刪除檢核點", "確定要刪除此筆里程碑檢核紀錄嗎？", (confirmed) => {
+    if (confirmed) {
+      checkpoints = checkpoints.filter(c => c.id !== id);
+      saveData();
+      renderAll();
+      syncWithGoogleSheets();
+    }
+  });
 };
 
 /* ==========================================================================
@@ -830,24 +948,30 @@ function importLocalBackup(e) {
 
   const reader = new FileReader();
   reader.onload = function(evt) {
-    try {
-      const data = JSON.parse(evt.target.result);
-      if (data.logs || data.vocab || data.checkpoints) {
-        if (confirm("匯入備份將會覆蓋您目前的本地資料，確定要繼續嗎？")) {
-          logs = data.logs || [];
-          vocab = data.vocab || [];
-          checkpoints = data.checkpoints || [];
-          
-          saveData();
-          renderAll();
-          alert("資料備份匯入成功！");
+    CustomDialog.confirm("警告", "匯入備份將會覆蓋您目前的本地資料，確定要繼續嗎？", (confirmed) => {
+      if (confirmed) {
+        try {
+          const backupData = JSON.parse(evt.target.result);
+          if (backupData && backupData.logs) {
+            logs = backupData.logs;
+            vocab = backupData.vocab || [];
+            checkpoints = backupData.checkpoints || [];
+            saveData();
+            renderStats();
+            renderHistory();
+            renderHeatmap();
+            renderVocab();
+            renderCheckpoints();
+            showToast("資料備份匯入成功！", "success");
+            syncWithGoogleSheets();
+          } else {
+            CustomDialog.show({ title: "錯誤", message: "格式錯誤：此檔案不包含合法的學習紀錄備份資料。" });
+          }
+        } catch (err) {
+          CustomDialog.show({ title: "錯誤", message: "讀取檔案失敗：" + err.message });
         }
-      } else {
-        alert("格式錯誤：此檔案不包含合法的學習紀錄備份資料。");
       }
-    } catch (err) {
-      alert("讀取檔案失敗：" + err.message);
-    }
+    });
   };
   reader.readAsText(file);
   // Reset input value to allow triggering change on same file
@@ -855,12 +979,21 @@ function importLocalBackup(e) {
 }
 
 function clearAllLogs() {
-  if (!confirm("⚠️ 警告：這將徹底清除您本機上的所有學習紀錄與單字庫！確定要全部刪除嗎？")) return;
-  logs = [];
-  vocab = [];
-  checkpoints = [];
-  saveData();
-  renderAll();
+  CustomDialog.confirm("警告", "⚠️ 警告：這將徹底清除您本機上的所有學習紀錄與單字庫！確定要全部刪除嗎？", (confirmed) => {
+    if (confirmed) {
+      logs = [];
+      vocab = [];
+      checkpoints = [];
+      saveData();
+      renderStats();
+      renderHistory();
+      renderHeatmap();
+      renderVocab();
+      renderCheckpoints();
+      showToast("已清空所有紀錄", "success");
+      syncWithGoogleSheets();
+    }
+  });
 }
 
 /* ==========================================================================
@@ -924,7 +1057,12 @@ async function syncWithGoogleSheets() {
       }
       
       saveData();
-      renderAll();
+      renderStats();
+      renderHeatmap();
+      renderHistory();
+      renderVocab();
+      renderFullVocabList();
+      renderCheckpoints();
       
       showToast("同步成功！資料已與 Google 試算表完成雙向安全同步。", "success");
     } else {
@@ -961,318 +1099,187 @@ function getLocalDateString(date) {
    4. Immersion Timers / Stopwatch Logic & Zone Overlay
    ========================================================================== */
 
-// Input Timer Toggle
-function toggleInputTimerUI() {
-  const manualBox = document.getElementById("inputManualTimeBox");
-  const timerBox = document.getElementById("inputTimerBox");
-  const btn = document.getElementById("toggleInputTimerBtn");
+class TimerManager {
+  static getTimerState(type) {
+    if (!this.state) this.state = { input: { seconds: 0, interval: null, startTime: null, isPaused: false }, output: { seconds: 0, interval: null, startTime: null, isPaused: false } };
+    return this.state[type];
+  }
 
-  if (timerBox.style.display === "none") {
-    // Switch to Timer Mode
-    manualBox.style.display = "none";
-    timerBox.style.display = "flex";
-    btn.innerHTML = `<i class="fas fa-keyboard"></i> 手動輸入`;
-    document.getElementById("inputDuration").removeAttribute("required");
-  } else {
-    // Switch to Manual Mode
-    if (inputTimerInterval) {
-      if (!confirm("計時器正在運作中，切換模式會中斷計時，確定嗎？")) return;
-      resetInputTimer();
+  static toggleUI(type) {
+    const manualBox = document.getElementById(`${type}ManualTimeBox`);
+    const timerBox = document.getElementById(`${type}TimerBox`);
+    const btn = document.getElementById(`toggle${type === 'input' ? 'Input' : 'Output'}TimerBtn`);
+    const durationInput = document.getElementById(`${type}Duration`);
+    const state = this.getTimerState(type);
+
+    if (timerBox.style.display === "none") {
+      manualBox.style.display = "none";
+      timerBox.style.display = "flex";
+      btn.innerHTML = `<i class="fas fa-keyboard"></i> 手動輸入`;
+      durationInput.removeAttribute("required");
+    } else {
+      if (state.interval) {
+        CustomDialog.confirm("警告", "計時器正在運作中，切換模式會中斷計時，確定嗎？", (confirmed) => {
+          if (confirmed) {
+            this.reset(type);
+            this.showManualUI(type);
+          }
+        });
+        return;
+      }
+      this.showManualUI(type);
     }
+  }
+
+  static showManualUI(type) {
+    const manualBox = document.getElementById(`${type}ManualTimeBox`);
+    const timerBox = document.getElementById(`${type}TimerBox`);
+    const btn = document.getElementById(`toggle${type === 'input' ? 'Input' : 'Output'}TimerBtn`);
+    const durationInput = document.getElementById(`${type}Duration`);
     manualBox.style.display = "block";
     timerBox.style.display = "none";
     btn.innerHTML = `<i class="fas fa-stopwatch"></i> 啟動計時器`;
-    document.getElementById("inputDuration").setAttribute("required", "required");
+    durationInput.setAttribute("required", "required");
   }
-}
 
-function handleInputTimerAction() {
-  const startBtn = document.getElementById("startInputTimerBtn");
-  
-  if (!inputTimerInterval) {
-    // Start Timer
-    inputTimerSeconds = 0;
-    inputTimerStartTime = Date.now();
-    inputTimerIsPaused = false;
-    activeTimerType = "input";
-    document.getElementById("pauseInputTimerBtn").style.display = "block";
-    document.getElementById("pauseInputTimerBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
+  static handleAction(type) {
+    const capType = type === 'input' ? 'Input' : 'Output';
+    const startBtn = document.getElementById(`start${capType}TimerBtn`);
+    const state = this.getTimerState(type);
     
-    // Configure and show Zone Overlay
-    const titleField = document.getElementById("inputTitle");
-    const focusTitle = titleField.value.trim() || "未命名沉浸影片/素材";
-    
-    const zoneOverlay = document.getElementById("zoneOverlay");
-    zoneOverlay.classList.remove("output-mode");
-    document.getElementById("zoneBadgeType").innerText = "輸入沉浸中";
-    document.getElementById("zoneFocusTitle").innerText = focusTitle;
-    
-    updateInputTimerDisplay();
-    
-    zoneOverlay.classList.add("show");
-    document.getElementById("zoneFloatingBadge").style.display = "none";
-    
-    startBtn.innerHTML = `<i class="fas fa-stop"></i> 結束沉浸`;
-    startBtn.classList.add("active");
-    
-    // Hide previous alerts
-    document.getElementById("inputTimerAlert").style.display = "none";
+    if (!state.interval) {
+      // Start Timer
+      state.seconds = 0;
+      state.startTime = Date.now();
+      state.isPaused = false;
+      activeTimerType = type;
+      
+      const pauseBtn = document.getElementById(`pause${capType}TimerBtn`);
+      pauseBtn.style.display = "block";
+      pauseBtn.innerHTML = `<i class="fas fa-pause"></i> 暫停`;
+      
+      const titleField = document.getElementById(`${type}Title`);
+      const focusTitle = titleField.value.trim() || (type === 'input' ? "未命名沉浸影片/素材" : "未命名口說對練主題");
+      
+      const zoneOverlay = document.getElementById("zoneOverlay");
+      if (type === 'output') zoneOverlay.classList.add("output-mode");
+      else zoneOverlay.classList.remove("output-mode");
+      
+      document.getElementById("zoneBadgeType").innerText = type === 'input' ? "輸入沉浸中" : "口說輸出中";
+      document.getElementById("zoneFocusTitle").innerText = focusTitle;
+      
+      this.updateDisplay(type);
+      
+      zoneOverlay.classList.add("show");
+      document.getElementById("zoneFloatingBadge").style.display = "none";
+      
+      startBtn.innerHTML = `<i class="fas fa-stop"></i> 結束沉浸`;
+      startBtn.classList.add("active");
+      
+      document.getElementById(`${type}TimerAlert`).style.display = "none";
 
-    inputTimerInterval = setInterval(() => {
-      if (inputTimerStartTime) {
-        inputTimerSeconds = Math.floor((Date.now() - inputTimerStartTime) / 1000);
-      }
-      updateInputTimerDisplay();
-    }, 1000);
-  } else {
-    // Stop Timer
-    clearInterval(inputTimerInterval);
-    inputTimerInterval = null;
-    document.getElementById("pauseInputTimerBtn").style.display = "none";
-    
-    // Hide overlay & badge
-    document.getElementById("zoneOverlay").classList.remove("show");
-    document.getElementById("zoneFloatingBadge").style.display = "none";
-    activeTimerType = null;
-    
-    const mins = Math.max(1, Math.round(inputTimerSeconds / 60));
-    
-    // Update form duration and show manual UI
-    document.getElementById("inputDuration").value = minsToTime(mins);
-    showInputManualUI();
-    
-    // Calculate live goal progression
-    const todayStr = getLocalDateString(new Date());
-    const todayLogs = logs.filter(l => l.date === todayStr);
-    const todayMins = todayLogs.reduce((sum, l) => sum + l.duration, 0);
-    const totalMins = todayMins + mins;
-    
-    let alertHtml = `<i class="fas fa-info-circle"></i> 本次計時 <strong>${mins}</strong> 分鐘。請填寫完下方資訊後手動新增紀錄。`;
-    if (totalMins >= 120) {
-      alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🌟 恭喜！加上本次，已達標 2 小時完美目標！</span>`;
-    } else if (totalMins >= 60) {
-      alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🎉 恭喜！加上本次，已達標 1 小時最低標準！</span>`;
+      state.interval = setInterval(() => {
+        if (state.startTime) {
+          state.seconds = Math.floor((Date.now() - state.startTime) / 1000);
+        }
+        this.updateDisplay(type);
+      }, 1000);
     } else {
-      alertHtml += ` <span style="margin-left:10px;">(今日預估累計 ${totalMins} 分鐘，距離 1 小時還差 ${60 - totalMins} 分鐘)</span>`;
-    }
-    
-    const alertEl = document.getElementById("inputTimerAlert");
-    alertEl.style.display = "flex";
-    alertEl.innerHTML = alertHtml;
-    
-    resetInputTimer();
-  }
-}
-
-function updateInputTimerDisplay() {
-  const mins = Math.floor(inputTimerSeconds / 60).toString().padStart(2, '0');
-  const secs = (inputTimerSeconds % 60).toString().padStart(2, '0');
-  const timeStr = `${mins}:${secs}`;
-  document.getElementById("inputTimerDisplay").innerText = timeStr;
-  document.getElementById("zoneTimerDisplay").innerText = timeStr;
-  document.getElementById("floatingBadgeTimer").innerText = timeStr;
-}
-
-function resetInputTimer() {
-  if (inputTimerInterval) {
-    clearInterval(inputTimerInterval);
-    inputTimerInterval = null;
-  }
-  inputTimerSeconds = 0;
-  inputTimerStartTime = null;
-  inputTimerIsPaused = false;
-  document.getElementById("pauseInputTimerBtn").style.display = "none";
-  updateInputTimerDisplay();
-  const startBtn = document.getElementById("startInputTimerBtn");
-  startBtn.innerHTML = `<i class="fas fa-play"></i> 開始沉浸`;
-  startBtn.classList.remove("active");
-}
-
-function showInputManualUI() {
-  document.getElementById("inputManualTimeBox").style.display = "block";
-  document.getElementById("inputTimerBox").style.display = "none";
-  document.getElementById("toggleInputTimerBtn").innerHTML = `<i class="fas fa-stopwatch"></i> 啟動計時器`;
-  document.getElementById("inputDuration").setAttribute("required", "required");
-}
-
-
-// Output Timer Toggle
-function toggleOutputTimerUI() {
-  const manualBox = document.getElementById("outputManualTimeBox");
-  const timerBox = document.getElementById("outputTimerBox");
-  const btn = document.getElementById("toggleOutputTimerBtn");
-
-  if (timerBox.style.display === "none") {
-    // Switch to Timer Mode
-    manualBox.style.display = "none";
-    timerBox.style.display = "flex";
-    btn.innerHTML = `<i class="fas fa-keyboard"></i> 手動輸入`;
-    document.getElementById("outputDuration").removeAttribute("required");
-  } else {
-    // Switch to Manual Mode
-    if (outputTimerInterval) {
-      if (!confirm("計時器正在運作中，切換模式會中斷計時，確定嗎？")) return;
-      resetOutputTimer();
-    }
-    manualBox.style.display = "block";
-    timerBox.style.display = "none";
-    btn.innerHTML = `<i class="fas fa-stopwatch"></i> 啟動計時器`;
-    document.getElementById("outputDuration").setAttribute("required", "required");
-  }
-}
-
-function handleOutputTimerAction() {
-  const startBtn = document.getElementById("startOutputTimerBtn");
-  
-  if (!outputTimerInterval) {
-    // Start Timer
-    outputTimerSeconds = 0;
-    outputTimerStartTime = Date.now();
-    outputTimerIsPaused = false;
-    activeTimerType = "output";
-    document.getElementById("pauseOutputTimerBtn").style.display = "block";
-    document.getElementById("pauseOutputTimerBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
-    
-    // Configure and show Zone Overlay
-    const titleField = document.getElementById("outputTitle");
-    const focusTitle = titleField.value.trim() || "未命名口說對練主題";
-    
-    const zoneOverlay = document.getElementById("zoneOverlay");
-    zoneOverlay.classList.add("output-mode");
-    document.getElementById("zoneBadgeType").innerText = "口說輸出中";
-    document.getElementById("zoneFocusTitle").innerText = focusTitle;
-    
-    updateOutputTimerDisplay();
-    
-    zoneOverlay.classList.add("show");
-    document.getElementById("zoneFloatingBadge").style.display = "none";
-    
-    startBtn.innerHTML = `<i class="fas fa-stop"></i> 結束沉浸`;
-    startBtn.classList.add("active");
-    
-    document.getElementById("outputTimerAlert").style.display = "none";
-
-    outputTimerInterval = setInterval(() => {
-      if (outputTimerStartTime) {
-        outputTimerSeconds = Math.floor((Date.now() - outputTimerStartTime) / 1000);
+      // Stop Timer
+      clearInterval(state.interval);
+      state.interval = null;
+      document.getElementById(`pause${capType}TimerBtn`).style.display = "none";
+      
+      document.getElementById("zoneOverlay").classList.remove("show");
+      document.getElementById("zoneFloatingBadge").style.display = "none";
+      activeTimerType = null;
+      
+      const mins = Math.max(1, Math.round(state.seconds / 60));
+      document.getElementById(`${type}Duration`).value = minsToTime(mins);
+      this.showManualUI(type);
+      
+      const todayStr = getLocalDateString(new Date());
+      const todayLogs = logs.filter(l => l.date === todayStr); // 計算當日所有目標時長
+      const todayMins = todayLogs.reduce((sum, l) => sum + l.duration, 0);
+      const totalMins = todayMins + mins;
+      
+      let alertHtml = `<i class="fas fa-info-circle"></i> 本次${type === 'input'?'':'口說'}計時 <strong>${mins}</strong> 分鐘。請填寫完下方資訊後手動新增紀錄。`;
+      if (totalMins >= 120) {
+        alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🌟 恭喜！加上本次，已達標 2 小時完美目標！</span>`;
+      } else if (totalMins >= 60) {
+        alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🎉 恭喜！加上本次，已達標 1 小時最低標準！</span>`;
+      } else {
+        alertHtml += ` <span style="margin-left:10px;">(今日預估累計 ${totalMins} 分鐘，距離 1 小時還差 ${60 - totalMins} 分鐘)</span>`;
       }
-      updateOutputTimerDisplay();
-    }, 1000);
-  } else {
-    // Stop Timer
-    clearInterval(outputTimerInterval);
-    outputTimerInterval = null;
-    document.getElementById("pauseOutputTimerBtn").style.display = "none";
-    
-    // Hide overlay & badge
-    document.getElementById("zoneOverlay").classList.remove("show");
-    document.getElementById("zoneFloatingBadge").style.display = "none";
-    activeTimerType = null;
-    
-    const mins = Math.max(1, Math.round(outputTimerSeconds / 60));
-    
-    // Update form duration and show manual UI
-    document.getElementById("outputDuration").value = minsToTime(mins);
-    showOutputManualUI();
-    
-    // Calculate live goal progression
-    const todayStr = getLocalDateString(new Date());
-    const todayLogs = logs.filter(l => l.date === todayStr);
-    const todayMins = todayLogs.reduce((sum, l) => sum + l.duration, 0);
-    const totalMins = todayMins + mins;
-    
-    let alertHtml = `<i class="fas fa-info-circle"></i> 本次口說計時 <strong>${mins}</strong> 分鐘。請填寫完下方資訊後手動新增紀錄。`;
-    if (totalMins >= 120) {
-      alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🌟 恭喜！加上本次，已達標 2 小時完美目標！</span>`;
-    } else if (totalMins >= 60) {
-      alertHtml += ` <span style="color:var(--accent-emerald);font-weight:bold;margin-left:10px;">🎉 恭喜！加上本次，已達標 1 小時最低標準！</span>`;
-    } else {
-      alertHtml += ` <span style="margin-left:10px;">(今日預估累計 ${totalMins} 分鐘，距離 1 小時還差 ${60 - totalMins} 分鐘)</span>`;
+      
+      const alertEl = document.getElementById(`${type}TimerAlert`);
+      alertEl.style.display = "flex";
+      alertEl.innerHTML = alertHtml;
+      
+      this.reset(type);
     }
-    
-    const alertEl = document.getElementById("outputTimerAlert");
-    alertEl.style.display = "flex";
-    alertEl.innerHTML = alertHtml;
-    
-    resetOutputTimer();
   }
-}
 
-function handlePauseTimerAction() {
-  if (activeTimerType === "input") {
-    if (inputTimerIsPaused) {
-      // Resume
-      inputTimerStartTime = Date.now() - (inputTimerSeconds * 1000);
-      inputTimerIsPaused = false;
-      inputTimerInterval = setInterval(() => {
-        inputTimerSeconds = Math.floor((Date.now() - inputTimerStartTime) / 1000);
-        updateInputTimerDisplay();
+  static handlePause() {
+    if (!activeTimerType) return;
+    const type = activeTimerType;
+    const capType = type === 'input' ? 'Input' : 'Output';
+    const state = this.getTimerState(type);
+    const badgeType = type === 'input' ? "輸入沉浸中" : "口說輸出中";
+    
+    const pauseBtn = document.getElementById(`pause${capType}TimerBtn`);
+    const zonePauseBtn = document.getElementById("zonePauseBtn");
+    
+    if (state.isPaused) {
+      state.startTime = Date.now() - (state.seconds * 1000);
+      state.isPaused = false;
+      state.interval = setInterval(() => {
+        state.seconds = Math.floor((Date.now() - state.startTime) / 1000);
+        this.updateDisplay(type);
       }, 1000);
       
-      document.getElementById("pauseInputTimerBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
-      document.getElementById("zonePauseBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
-      document.getElementById("zoneBadgeType").innerText = "輸入沉浸中";
+      pauseBtn.innerHTML = `<i class="fas fa-pause"></i> 暫停`;
+      zonePauseBtn.innerHTML = `<i class="fas fa-pause"></i> 暫停`;
+      document.getElementById("zoneBadgeType").innerText = badgeType;
     } else {
-      // Pause
-      clearInterval(inputTimerInterval);
-      inputTimerIsPaused = true;
-      document.getElementById("pauseInputTimerBtn").innerHTML = `<i class="fas fa-play"></i> 繼續`;
-      document.getElementById("zonePauseBtn").innerHTML = `<i class="fas fa-play"></i> 繼續`;
-      document.getElementById("zoneBadgeType").innerText = "暫停中";
-    }
-  } else if (activeTimerType === "output") {
-    if (outputTimerIsPaused) {
-      // Resume
-      outputTimerStartTime = Date.now() - (outputTimerSeconds * 1000);
-      outputTimerIsPaused = false;
-      outputTimerInterval = setInterval(() => {
-        outputTimerSeconds = Math.floor((Date.now() - outputTimerStartTime) / 1000);
-        updateOutputTimerDisplay();
-      }, 1000);
-      
-      document.getElementById("pauseOutputTimerBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
-      document.getElementById("zonePauseBtn").innerHTML = `<i class="fas fa-pause"></i> 暫停`;
-      document.getElementById("zoneBadgeType").innerText = "口說輸出中";
-    } else {
-      // Pause
-      clearInterval(outputTimerInterval);
-      outputTimerIsPaused = true;
-      document.getElementById("pauseOutputTimerBtn").innerHTML = `<i class="fas fa-play"></i> 繼續`;
-      document.getElementById("zonePauseBtn").innerHTML = `<i class="fas fa-play"></i> 繼續`;
+      clearInterval(state.interval);
+      state.isPaused = true;
+      pauseBtn.innerHTML = `<i class="fas fa-play"></i> 繼續`;
+      zonePauseBtn.innerHTML = `<i class="fas fa-play"></i> 繼續`;
       document.getElementById("zoneBadgeType").innerText = "暫停中";
     }
   }
-}
 
-function updateOutputTimerDisplay() {
-  const mins = Math.floor(outputTimerSeconds / 60).toString().padStart(2, '0');
-  const secs = (outputTimerSeconds % 60).toString().padStart(2, '0');
-  const timeStr = `${mins}:${secs}`;
-  document.getElementById("outputTimerDisplay").innerText = timeStr;
-  document.getElementById("zoneTimerDisplay").innerText = timeStr;
-  document.getElementById("floatingBadgeTimer").innerText = timeStr;
-}
-
-function resetOutputTimer() {
-  if (outputTimerInterval) {
-    clearInterval(outputTimerInterval);
-    outputTimerInterval = null;
+  static updateDisplay(type) {
+    const state = this.getTimerState(type);
+    const mins = Math.floor(state.seconds / 60).toString().padStart(2, '0');
+    const secs = (state.seconds % 60).toString().padStart(2, '0');
+    const timeStr = `${mins}:${secs}`;
+    
+    document.getElementById(`${type}TimerDisplay`).innerText = timeStr;
+    document.getElementById("zoneTimerDisplay").innerText = timeStr;
+    document.getElementById("floatingBadgeTimer").innerText = timeStr;
   }
-  outputTimerSeconds = 0;
-  outputTimerStartTime = null;
-  outputTimerIsPaused = false;
-  document.getElementById("pauseOutputTimerBtn").style.display = "none";
-  updateOutputTimerDisplay();
-  const startBtn = document.getElementById("startOutputTimerBtn");
-  startBtn.innerHTML = `<i class="fas fa-play"></i> 開始沉浸`;
-  startBtn.classList.remove("active");
-}
 
-function showOutputManualUI() {
-  document.getElementById("outputManualTimeBox").style.display = "block";
-  document.getElementById("outputTimerBox").style.display = "none";
-  document.getElementById("toggleOutputTimerBtn").innerHTML = `<i class="fas fa-stopwatch"></i> 啟動計時器`;
-  document.getElementById("outputDuration").setAttribute("required", "required");
+  static reset(type) {
+    const state = this.getTimerState(type);
+    const capType = type === 'input' ? 'Input' : 'Output';
+    
+    if (state.interval) {
+      clearInterval(state.interval);
+      state.interval = null;
+    }
+    state.seconds = 0;
+    state.startTime = null;
+    state.isPaused = false;
+    
+    document.getElementById(`pause${capType}TimerBtn`).style.display = "none";
+    this.updateDisplay(type);
+    
+    const startBtn = document.getElementById(`start${capType}TimerBtn`);
+    startBtn.innerHTML = `<i class="fas fa-play"></i> 開始沉浸`;
+    startBtn.classList.remove("active");
+  }
 }
 
 /* ==========================================================================
@@ -1381,13 +1388,11 @@ function closeHistoryModal() {
 }
 
 function handleVisibilityChange() {
-  if (document.visibilityState === "visible") {
-    if (activeTimerType === "input" && inputTimerStartTime && !inputTimerIsPaused) {
-      inputTimerSeconds = Math.floor((Date.now() - inputTimerStartTime) / 1000);
-      updateInputTimerDisplay();
-    } else if (activeTimerType === "output" && outputTimerStartTime && !outputTimerIsPaused) {
-      outputTimerSeconds = Math.floor((Date.now() - outputTimerStartTime) / 1000);
-      updateOutputTimerDisplay();
+  if (document.visibilityState === "visible" && activeTimerType) {
+    const state = TimerManager.getTimerState(activeTimerType);
+    if (state.startTime && !state.isPaused) {
+      state.seconds = Math.floor((Date.now() - state.startTime) / 1000);
+      TimerManager.updateDisplay(activeTimerType);
     }
   }
 }
@@ -1398,6 +1403,8 @@ function handleVisibilityChange() {
 let pendingAiVocabList = [];
 let confirmedPendingVocabs = [];
 
+let aiExtractAbortController = null;
+
 document.getElementById("aiExtractVocabBtn").addEventListener("click", async () => {
   const textInput = document.getElementById("aiVocabInputText");
   const text = textInput.value.trim();
@@ -1407,6 +1414,26 @@ document.getElementById("aiExtractVocabBtn").addEventListener("click", async () 
     showToast("請先貼上英文文章、對話或字幕！", "error");
     return;
   }
+
+  aiExtractAbortController = new AbortController();
+  const signal = aiExtractAbortController.signal;
+
+  const modal = document.getElementById("aiExtractProgressModal");
+  if (modal) modal.classList.add("show");
+  
+  const timerDisplay = document.getElementById("aiExtractTimerDisplay");
+  const cancelBtn = document.getElementById("cancelAiExtractBtn");
+  if (cancelBtn) cancelBtn.style.display = "none";
+  if (timerDisplay) timerDisplay.innerText = "0s";
+  
+  let seconds = 0;
+  const timerInterval = setInterval(() => {
+    seconds++;
+    if (timerDisplay) timerDisplay.innerText = seconds + "s";
+    if (seconds >= 10 && cancelBtn) {
+      cancelBtn.style.display = "block";
+    }
+  }, 1000);
 
   const originalHtml = btn.innerHTML;
   btn.disabled = true;
@@ -1420,7 +1447,8 @@ document.getElementById("aiExtractVocabBtn").addEventListener("click", async () 
         "Content-Type": "application/json",
         "X-Sync-Token": token || ""
       },
-      body: JSON.stringify({ text })
+      body: JSON.stringify({ text }),
+      signal
     });
 
     if (res.status === 401) {
@@ -1444,12 +1472,25 @@ document.getElementById("aiExtractVocabBtn").addEventListener("click", async () 
       showToast("AI 無法萃取出任何單字，請嘗試提供更多上下文。", "info");
     }
   } catch (err) {
-    showToast("AI 萃取失敗：" + err.message, "error");
+    if (err.name === 'AbortError') {
+      showToast("已取消 AI 萃取。", "info");
+    } else {
+      showToast("AI 萃取失敗：" + err.message, "error");
+    }
   } finally {
+    clearInterval(timerInterval);
+    if (modal) modal.classList.remove("show");
     btn.disabled = false;
     btn.innerHTML = originalHtml;
   }
 });
+
+document.getElementById("cancelAiExtractBtn")?.addEventListener("click", () => {
+  if (aiExtractAbortController) {
+    aiExtractAbortController.abort();
+  }
+});
+
 
 function renderVocabReviewModal(vocabItems) {
   const listContainer = document.getElementById("vocabReviewList");
@@ -1532,7 +1573,8 @@ function renderPendingVocabChips() {
     chip.title = item.definition;
     chip.innerHTML = `
       <strong>${item.word}</strong>
-      <span class="vocab-chip-remove" onclick="removePendingVocab(${index})" style="color:var(--text-secondary);">&times;</span>
+      <span class="vocab-chip-edit" onclick="editPendingVocab(${index})" style="color:var(--text-secondary); cursor: pointer; font-size: 10px; margin-left: 4px;"><i class="fas fa-edit"></i></span>
+      <span class="vocab-chip-remove" onclick="removePendingVocab(${index})" style="color:var(--text-secondary); cursor: pointer; margin-left: 4px;">&times;</span>
     `;
     chipsDiv.appendChild(chip);
   });
@@ -1561,3 +1603,315 @@ function minsToTime(totalMins) {
   const m = (totalMins % 60).toString().padStart(2, '0');
   return `${h}:${m}`;
 }
+
+// ==========================================
+// Enhancements: Form Persistence, Quiz, Lib
+// ==========================================
+(function initEnhancements() {
+  // 1. Custom Log Date
+  const dateBtn = document.getElementById("toggleCustomDateBtn");
+  const dateInput = document.getElementById("customLogDate");
+  if (dateBtn && dateInput) {
+    dateInput.value = getLocalDateString(new Date());
+    dateBtn.addEventListener("click", () => {
+      if (dateInput.style.display === "none") {
+        dateInput.style.display = "inline-block";
+      } else {
+        dateInput.style.display = "none";
+        dateInput.value = getLocalDateString(new Date()); // Reset
+      }
+    });
+  }
+
+  // 2. Form Persistence
+  const formFields = ["inputSource", "inputDuration", "inputTitle", "aiVocabInputText", "outputType", "outputDuration", "outputTitle"];
+  formFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const saved = localStorage.getItem('draft_' + id);
+      if (saved) el.value = saved;
+      el.addEventListener("input", () => localStorage.setItem('draft_' + id, el.value));
+    }
+  });
+
+  const checkbox = document.getElementById("inputPassive");
+  if (checkbox) {
+    const saved = localStorage.getItem('draft_inputPassive');
+    if (saved === 'true') checkbox.checked = true;
+    checkbox.addEventListener("change", () => localStorage.setItem('draft_inputPassive', checkbox.checked));
+  }
+
+  // 3. Vocab Library UI bindings
+  document.getElementById("openVocabLibraryBtn")?.addEventListener("click", () => {
+    document.getElementById("vocabLibraryModal").classList.add("show");
+    renderFullVocabList();
+  });
+  
+  document.getElementById("vocabSearchInput")?.addEventListener("input", renderFullVocabList);
+
+  window.closeVocabLibraryModal = function() {
+    document.getElementById("vocabLibraryModal").classList.remove("show");
+  };
+
+  document.getElementById("manualAddVocabLibBtn")?.addEventListener("click", () => {
+    CustomDialog.show({
+      title: "新增單字",
+      inputs: [
+        { label: "英文單字", placeholder: "例如: apple" },
+        { label: "中文解釋", placeholder: "例如: 蘋果" },
+        { label: "例句 (選填)", placeholder: "例如: I eat an apple." }
+      ],
+      onConfirm: (values) => {
+        const word = values[0]?.trim();
+        if (!word) return;
+        const meaning = values[1]?.trim();
+        const sentence = values[2]?.trim();
+        
+        vocab.push({
+          id: "v-" + Date.now(),
+          date: getLocalDateString(new Date()),
+          word: word,
+          definition: meaning || "",
+          sentence: sentence || "",
+          source: "Manual",
+          synced: false
+        });
+        saveData();
+        renderVocab();
+        renderFullVocabList();
+        showToast("單字已新增至單字庫", "success");
+      }
+    });
+  });
+
+  // 4. Pending Vocab Edit & Add
+  window.editPendingVocab = function(index) {
+    const item = confirmedPendingVocabs[index];
+    CustomDialog.show({
+      title: "編輯單字",
+      inputs: [
+        { label: "英文單字", value: item.word },
+        { label: "中文解釋", value: item.definition }
+      ],
+      onConfirm: (values) => {
+        const newWord = values[0]?.trim();
+        if (!newWord) return;
+        item.word = newWord;
+        item.definition = values[1]?.trim() || "";
+        renderPendingVocabChips();
+      }
+    });
+  };
+
+  document.getElementById("addPendingVocabBtn")?.addEventListener("click", () => {
+    CustomDialog.show({
+      title: "加入待寫入單字",
+      inputs: [
+        { label: "英文單字", placeholder: "例如: banana" },
+        { label: "中文解釋", placeholder: "例如: 香蕉" }
+      ],
+      onConfirm: (values) => {
+        const word = values[0]?.trim();
+        if (!word) return;
+        confirmedPendingVocabs.push({ word: word, definition: values[1]?.trim() || "", sentence: "" });
+        renderPendingVocabChips();
+      }
+    });
+  });
+
+  // 5. Daily Quiz Setup
+  checkDailyQuizState();
+  document.getElementById("startQuizBtn")?.addEventListener("click", startDailyQuiz);
+})();
+
+// ==========================================
+// Daily Quiz Logic
+// ==========================================
+let currentQuizIndex = 0;
+let currentQuizQuestions = [];
+
+function checkDailyQuizState() {
+  const badge = document.getElementById("quizStatusBadge");
+  const startBtn = document.getElementById("startQuizBtn");
+  const today = getLocalDateString(new Date());
+  
+  const savedState = JSON.parse(localStorage.getItem("dailyQuizState")) || {};
+  
+  if (savedState.date === today && savedState.completed) {
+    if(badge) {
+      badge.innerText = "今日已完成";
+      badge.style.background = "rgba(16, 185, 129, 0.2)";
+      badge.style.color = "#10b981";
+    }
+    if(startBtn) startBtn.disabled = true;
+  }
+}
+
+function startDailyQuiz() {
+  if (vocab.length < 5) {
+    alert("單字庫中少於 5 個單字，無法進行測驗！請先多多累積單字喔！");
+    return;
+  }
+
+  // Randomly select 5 words
+  const shuffledVocab = [...vocab].sort(() => 0.5 - Math.random());
+  const selectedVocab = shuffledVocab.slice(0, 5);
+  
+  currentQuizQuestions = selectedVocab.map(v => {
+    // Generate 3 distractors
+    const distractors = [...vocab].filter(dist => dist.id !== v.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+    const options = [v.definition, ...distractors.map(d => d.definition)];
+    // Ensure unique options if possible, fallback to word if definition is empty
+    const uniqueOptions = [...new Set(options.map((opt, i) => opt || `(無定義 ${i})`))];
+    while(uniqueOptions.length < 4) {
+      uniqueOptions.push(`干擾選項 ${uniqueOptions.length}`);
+    }
+    const finalOptions = uniqueOptions.slice(0, 4).sort(() => 0.5 - Math.random());
+    
+    return {
+      word: v.word,
+      correct: v.definition || "(無定義)",
+      options: finalOptions
+    };
+  });
+
+  currentQuizIndex = 0;
+  document.getElementById("startQuizBtn").style.display = "none";
+  document.getElementById("quizContainer").style.display = "block";
+  document.getElementById("quizIntroText").style.display = "none";
+  
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  if (currentQuizIndex >= currentQuizQuestions.length) {
+    finishDailyQuiz();
+    return;
+  }
+
+  const q = currentQuizQuestions[currentQuizIndex];
+  document.getElementById("quizCurrentQ").innerText = currentQuizIndex + 1;
+  document.getElementById("quizQuestionText").innerText = q.word;
+  
+  const optsContainer = document.getElementById("quizOptionsContainer");
+  optsContainer.innerHTML = "";
+  
+  q.options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "quiz-option-btn";
+    btn.innerText = opt;
+    btn.onclick = () => handleQuizAnswer(btn, opt, q.correct);
+    optsContainer.appendChild(btn);
+  });
+}
+
+function handleQuizAnswer(btn, selected, correct) {
+  const allBtns = document.querySelectorAll(".quiz-option-btn");
+  allBtns.forEach(b => b.disabled = true);
+  
+  if (selected === correct) {
+    btn.classList.add("correct");
+  } else {
+    btn.classList.add("wrong");
+    // highlight correct
+    allBtns.forEach(b => {
+      if (b.innerText === correct) b.classList.add("correct");
+    });
+  }
+  
+  setTimeout(() => {
+    currentQuizIndex++;
+    renderQuizQuestion();
+  }, 1000);
+}
+
+function finishDailyQuiz() {
+  document.getElementById("quizContainer").style.display = "none";
+  document.getElementById("quizIntroText").style.display = "block";
+  document.getElementById("quizIntroText").innerText = "恭喜完成今日的 5 題單字測驗！";
+  
+  const today = getLocalDateString(new Date());
+  localStorage.setItem("dailyQuizState", JSON.stringify({ date: today, completed: true }));
+  checkDailyQuizState();
+}
+
+// ==========================================
+// Vocab Library Logic
+// ==========================================
+function renderFullVocabList() {
+  const container = document.getElementById("fullVocabList");
+  if (!container) return;
+  
+  const searchTxt = (document.getElementById("vocabSearchInput").value || "").toLowerCase();
+  container.innerHTML = "";
+  
+  const filtered = vocab.filter(v => 
+    (v.word && v.word.toLowerCase().includes(searchTxt)) || 
+    (v.definition && v.definition.toLowerCase().includes(searchTxt))
+  );
+  
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="text-muted" style="text-align:center; padding:20px;">找不到符合的單字</div>`;
+    return;
+  }
+  
+  filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach((v, index) => {
+    const div = document.createElement("div");
+    div.style.background = "#f8fafc";
+    div.style.border = "1px solid var(--border-color)";
+    div.style.borderRadius = "8px";
+    div.style.padding = "12px 16px";
+    div.style.display = "flex";
+    div.style.flexDirection = "column";
+    div.style.gap = "6px";
+    
+    div.innerHTML = `
+      <div style="display:flex; justify-content: space-between; align-items: flex-start;">
+        <h4 style="color:var(--accent-cyan); margin:0; font-size: 16px;">${v.word}</h4>
+        <div>
+          <button onclick="editVocabLib('${v.id}')" class="btn-text-only" style="padding:4px;"><i class="fas fa-edit"></i></button>
+          <button onclick="deleteVocabLib('${v.id}')" class="btn-text-only" style="padding:4px;"><i class="fas fa-trash-alt"></i></button>
+        </div>
+      </div>
+      <div style="font-size: 14px; font-weight: 500;">${v.definition || '(無定義)'}</div>
+      ${v.sentence ? `<div style="font-size: 12px; color: var(--text-secondary); background: rgba(0,0,0,0.03); padding: 6px; border-radius: 4px;"><em>"${v.sentence}"</em></div>` : ''}
+      <div style="font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 4px;">來源: ${v.source || '手動加入'} | ${v.date}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+window.editVocabLib = function(id) {
+  const v = vocab.find(x => x.id === id);
+  if(!v) return;
+  
+  CustomDialog.show({
+    title: "編輯單字庫",
+    inputs: [
+      { label: "英文單字", value: v.word },
+      { label: "中文解釋", value: v.definition },
+      { label: "例句", value: v.sentence }
+    ],
+    onConfirm: (values) => {
+      const newWord = values[0]?.trim();
+      if (!newWord) return;
+      v.word = newWord;
+      v.definition = values[1]?.trim() || "";
+      v.sentence = values[2]?.trim() || "";
+      saveData();
+      renderVocab();
+      renderFullVocabList();
+    }
+  });
+};
+
+window.deleteVocabLib = function(id) {
+  CustomDialog.confirm("刪除單字", "確定要刪除此單字嗎？", (confirmed) => {
+    if (confirmed) {
+      vocab = vocab.filter(x => x.id !== id);
+      saveData();
+      renderVocab();
+      renderFullVocabList();
+    }
+  });
+};
